@@ -1,0 +1,215 @@
+<% content_for :title, "#{@document.title} - Ragdoll Engine Demo" %>
+
+<div class="row">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1><i class="fas fa-file-alt"></i> <%= @document.title %></h1>
+      <div>
+        <%= link_to "Edit", edit_document_path(@document), class: "btn btn-outline-primary" %>
+        <%= link_to "Delete", document_path(@document), method: :delete, class: "btn btn-outline-danger", data: { confirm: "Are you sure?" } %>
+        <%= link_to "Back to Documents", documents_path, class: "btn btn-outline-secondary" %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h5><i class="fas fa-info-circle"></i> Document Information</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <dl class="row">
+              <dt class="col-sm-4">Type:</dt>
+              <dd class="col-sm-8">
+                <span class="badge bg-secondary"><%= @document.document_type&.upcase %></span>
+              </dd>
+              
+              <dt class="col-sm-4">Status:</dt>
+              <dd class="col-sm-8">
+                <span class="badge bg-<%= @document.status == 'processed' ? 'success' : @document.status == 'failed' ? 'danger' : 'warning' %>">
+                  <%= @document.status %>
+                </span>
+              </dd>
+              
+              <dt class="col-sm-4">Size:</dt>
+              <dd class="col-sm-8">
+                <% if @document.content_length %>
+                  <%= number_to_human_size(@document.content_length) %>
+                <% else %>
+                  <span class="text-muted">Unknown</span>
+                <% end %>
+              </dd>
+              
+              <dt class="col-sm-4">Chunks:</dt>
+              <dd class="col-sm-8">
+                <span class="badge bg-info"><%= @document.chunk_count || 0 %></span>
+              </dd>
+            </dl>
+          </div>
+          
+          <div class="col-md-6">
+            <dl class="row">
+              <dt class="col-sm-4">Created:</dt>
+              <dd class="col-sm-8">
+                <%= @document.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+              </dd>
+              
+              <dt class="col-sm-4">Updated:</dt>
+              <dd class="col-sm-8">
+                <%= @document.updated_at.strftime("%B %d, %Y at %I:%M %p") %>
+              </dd>
+              
+              <dt class="col-sm-4">Embeddings:</dt>
+              <dd class="col-sm-8">
+                <span class="badge bg-success"><%= @embeddings.count %></span>
+              </dd>
+              
+              <dt class="col-sm-4">File Path:</dt>
+              <dd class="col-sm-8">
+                <% if @document.file_path %>
+                  <code><%= @document.file_path %></code>
+                  <% if File.exist?(@document.file_path) %>
+                    <%= link_to "Download", download_document_path(@document), class: "btn btn-sm btn-outline-primary ms-2" %>
+                  <% end %>
+                <% else %>
+                  <span class="text-muted">No file</span>
+                <% end %>
+              </dd>
+            </dl>
+          </div>
+        </div>
+        
+        <% if @document.metadata.present? %>
+          <hr>
+          <h6>Metadata:</h6>
+          <pre class="bg-light p-3 rounded"><%= JSON.pretty_generate(@document.metadata) %></pre>
+        <% end %>
+      </div>
+    </div>
+    
+    <div class="card mt-4">
+      <div class="card-header">
+        <h5><i class="fas fa-file-text"></i> Content Preview</h5>
+      </div>
+      <div class="card-body">
+        <% if @document.content.present? %>
+          <div class="content-preview" style="max-height: 400px; overflow-y: auto;">
+            <pre class="bg-light p-3 rounded"><%= truncate(@document.content, length: 2000) %></pre>
+          </div>
+          <% if @document.content.length > 2000 %>
+            <div class="mt-3">
+              <%= link_to "View Full Content", preview_document_path(@document), class: "btn btn-outline-primary", target: "_blank" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted">No content available.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">
+        <h5><i class="fas fa-tools"></i> Actions</h5>
+      </div>
+      <div class="card-body">
+        <%= link_to reprocess_document_path(@document), method: :post, class: "btn btn-warning w-100 mb-2", data: { confirm: "Are you sure you want to reprocess this document?" } do %>
+          <i class="fas fa-sync"></i> Reprocess Document
+        <% end %>
+        
+        <%= link_to preview_document_path(@document), class: "btn btn-info w-100 mb-2", target: "_blank" do %>
+          <i class="fas fa-external-link-alt"></i> Open Preview
+        <% end %>
+        
+        <% if @document.file_path && File.exist?(@document.file_path) %>
+          <%= link_to download_document_path(@document), class: "btn btn-success w-100 mb-2" do %>
+            <i class="fas fa-download"></i> Download Original
+          <% end %>
+        <% end %>
+        
+        <%= link_to edit_document_path(@document), class: "btn btn-outline-primary w-100 mb-2" do %>
+          <i class="fas fa-edit"></i> Edit Document
+        <% end %>
+      </div>
+    </div>
+    
+    <div class="card mt-4">
+      <div class="card-header">
+        <h5><i class="fas fa-vector-square"></i> Embeddings</h5>
+      </div>
+      <div class="card-body">
+        <% if @embeddings.any? %>
+          <p class="text-muted mb-3">
+            This document has been processed into <%= @embeddings.count %> embedding chunks.
+          </p>
+          
+          <div class="embedding-list" style="max-height: 300px; overflow-y: auto;">
+            <% @embeddings.each_with_index do |embedding, index| %>
+              <div class="card mb-2">
+                <div class="card-body p-2">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                      <strong>Chunk <%= embedding.chunk_index %></strong>
+                      <% if embedding.usage_count > 0 %>
+                        <span class="badge bg-success ms-1"><%= embedding.usage_count %> uses</span>
+                      <% end %>
+                    </div>
+                    <small class="text-muted">
+                      <%= embedding.vector&.size || 0 %> dims
+                    </small>
+                  </div>
+                  <p class="mb-1 small">
+                    <%= truncate(embedding.content, length: 150) %>
+                  </p>
+                  <% if embedding.last_used_at %>
+                    <small class="text-muted">
+                      Last used: <%= time_ago_in_words(embedding.last_used_at) %> ago
+                    </small>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="text-muted">No embeddings generated yet.</p>
+          <% if @document.status == 'failed' %>
+            <div class="alert alert-danger">
+              Document processing failed. Try reprocessing the document.
+            </div>
+          <% elsif @document.status == 'pending' %>
+            <div class="alert alert-info">
+              Document is being processed. Embeddings will appear here once processing is complete.
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+    
+    <div class="card mt-4">
+      <div class="card-header">
+        <h5><i class="fas fa-search"></i> Recent Searches</h5>
+      </div>
+      <div class="card-body">
+        <% if @recent_searches.any? %>
+          <% @recent_searches.each do |search| %>
+            <div class="mb-2">
+              <strong><%= search.query %></strong>
+              <% if search.similarity_score %>
+                <span class="badge bg-info ms-1"><%= number_with_precision(search.similarity_score, precision: 3) %></span>
+              <% end %>
+              <br>
+              <small class="text-muted"><%= time_ago_in_words(search.created_at) %> ago</small>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted">No searches performed on this document yet.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
