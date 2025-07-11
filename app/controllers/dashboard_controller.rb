@@ -7,7 +7,7 @@ class DashboardController < ApplicationController
       pending_documents: Ragdoll::Document.where(status: 'pending').count,
       total_embeddings: Ragdoll::Embedding.count,
       total_searches: Ragdoll::Search.count,
-      recent_searches: Ragdoll::Search.includes(:document).order(created_at: :desc).limit(5)
+      recent_searches: Ragdoll::Search.order(created_at: :desc).limit(5)
     }
     
     @document_types = Ragdoll::Document.group(:document_type).count

@@ -1,7 +1,5 @@
-GIT
-  remote: https://github.com/madbomber/ragdoll.git
-  revision: a439d405bc932e460c2f23ddb6a3b8a816efaca3
-  branch: main
+PATH
+  remote: ../..
   specs:
     ragdoll (0.1.0)
       docx (~> 0.8)
@@ -118,7 +116,6 @@ GEM
     debug (1.11.0)
       irb (~> 1.10)
       reline (>= 0.3.8)
-    debug_me (1.1.1)
     docx (0.9.1)
       nokogiri (~> 1.13, >= 1.13.0)
       rubyzip (~> 2.0)
@@ -454,7 +451,6 @@ DEPENDENCIES
   brakeman
   claude-on-rails
   debug
-  debug_me
   importmap-rails
   jbuilder
   kamal

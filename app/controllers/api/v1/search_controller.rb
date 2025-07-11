@@ -27,7 +27,7 @@ class Api::V1::SearchController < Api::V1::BaseController
           content: result[:content],
           similarity: result[:similarity],
           usage_count: embedding.usage_count,
-          last_used_at: embedding.last_used_at,
+          last_used_at: embedding.returned_at,
           chunk_index: embedding.chunk_index,
           document_type: embedding.document.document_type
         }
@@ -40,9 +40,9 @@ class Api::V1::SearchController < Api::V1::BaseController
         
         Ragdoll::Search.create!(
           query: query,
-          embedding: embedding,
-          document: embedding.document,
-          similarity_score: first_result[:similarity]
+          search_type: 'semantic',
+          result_count: results.count,
+          model_name: Ragdoll.configuration.embedding_model
         )
       end
       

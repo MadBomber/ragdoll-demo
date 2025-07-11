@@ -6,18 +6,15 @@ class DocumentsController < ApplicationController
     @documents = @documents.where(status: params[:status]) if params[:status].present?
     @documents = @documents.where(document_type: params[:document_type]) if params[:document_type].present?
     @documents = @documents.where('title ILIKE ?', "%#{params[:search]}%") if params[:search].present?
-    @documents = @documents.includes(:embeddings).order(created_at: :desc).page(params[:page])
+    @documents = @documents.includes(:ragdoll_embeddings).order(created_at: :desc)
     
     @document_types = Ragdoll::Document.distinct.pluck(:document_type).compact
     @statuses = Ragdoll::Document.distinct.pluck(:status).compact
   end
   
   def show
-    @embeddings = @document.embeddings.includes(:searches).order(created_at: :desc)
-    @recent_searches = Ragdoll::Search.joins(:embedding)
-      .where(ragdoll_embeddings: { document_id: @document.id })
-      .order(created_at: :desc)
-      .limit(10)
+    @embeddings = @document.ragdoll_embeddings.order(created_at: :desc)
+    @recent_searches = Ragdoll::Search.order(created_at: :desc).limit(10)
   end
   
   def new
@@ -104,7 +101,7 @@ class DocumentsController < ApplicationController
   def reprocess
     begin
       # Delete existing embeddings
-      @document.embeddings.destroy_all
+      @document.ragdoll_embeddings.destroy_all
       
       # Reprocess document
       @document.update(status: 'pending')
@@ -119,8 +116,8 @@ class DocumentsController < ApplicationController
   end
   
   def download
-    if @document.file_path.present? && File.exist?(@document.file_path)
-      send_file @document.file_path, filename: @document.title
+    if @document.location.present? && File.exist?(@document.location)
+      send_file @document.location, filename: @document.title
     else
       redirect_to @document, alert: 'File not found.'
     end
@@ -157,7 +154,7 @@ class DocumentsController < ApplicationController
     if params[:document_ids].present?
       documents = Ragdoll::Document.where(id: params[:document_ids])
       documents.each do |document|
-        document.embeddings.destroy_all
+        document.ragdoll_embeddings.destroy_all
         document.update(status: 'pending')
         Ragdoll::ImportFileJob.perform_later(document.id)
       end

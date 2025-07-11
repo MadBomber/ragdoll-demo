@@ -32,9 +32,16 @@ class Api::V1::SystemController < Api::V1::BaseController
         
         performance_metrics: {
           average_search_time: calculate_average_search_time,
-          embedding_dimensions: Ragdoll::Embedding.first&.vector&.size || 0,
-          average_document_size: Ragdoll::Document.average(:content_length)&.round || 0,
-          average_chunks_per_document: Ragdoll::Document.average(:chunk_count)&.round || 0
+          embedding_dimensions: begin
+            first_embedding = Ragdoll::Embedding.first
+            if first_embedding&.embedding.present?
+              JSON.parse(first_embedding.embedding).size rescue 0
+            else
+              0
+            end
+          end,
+          average_document_size: Ragdoll::Document.average('LENGTH(content)')&.round || 0,
+          average_chunks_per_document: (Ragdoll::Embedding.count.to_f / Ragdoll::Document.count).round || 0
         },
         
         health_check: {

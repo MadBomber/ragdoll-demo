@@ -103,18 +103,18 @@
           
           <dt>Content Length:</dt>
           <dd>
-            <% if @document.content_length %>
-              <%= number_to_human_size(@document.content_length) %>
+            <% if @document.character_count > 0 %>
+              <%= pluralize(@document.character_count, 'character') %>
             <% else %>
               Unknown
             <% end %>
           </dd>
           
           <dt>Chunks:</dt>
-          <dd><%= @document.chunk_count || 0 %></dd>
+          <dd><%= @document.ragdoll_embeddings.count %></dd>
           
           <dt>Embeddings:</dt>
-          <dd><%= @document.embeddings.count %></dd>
+          <dd><%= @document.ragdoll_embeddings.count %></dd>
           
           <dt>Created:</dt>
           <dd><%= @document.created_at.strftime("%B %d, %Y") %></dd>

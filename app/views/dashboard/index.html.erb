@@ -135,9 +135,10 @@
               <div>
                 <strong><%= search.query %></strong>
                 <small class="text-muted d-block">
-                  Found in: <%= search.document.title %>
-                  <% if search.similarity_score %>
-                    • Similarity: <%= number_with_precision(search.similarity_score, precision: 3) %>
+                  Type: <%= search.search_type.capitalize %>
+                  • Results: <%= search.result_count %>
+                  <% if search.search_time %>
+                    • Time: <%= number_with_precision(search.search_time, precision: 3) %>s
                   <% end %>
                 </small>
               </div>

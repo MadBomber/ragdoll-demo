@@ -1,6 +1,6 @@
 class SearchController < ApplicationController
   def index
-    @recent_searches = Ragdoll::Search.includes(:document).order(created_at: :desc).limit(10)
+    @recent_searches = Ragdoll::Search.order(created_at: :desc).limit(10)
     @popular_queries = Ragdoll::Search.group(:query).order('COUNT(*) DESC').limit(10).count
   end
   
@@ -35,7 +35,7 @@ class SearchController < ApplicationController
             similarity: result[:similarity],
             content: result[:content],
             usage_count: embedding.usage_count,
-            last_used: embedding.last_used_at
+            last_used: embedding.returned_at
           }
         end
         
@@ -46,9 +46,9 @@ class SearchController < ApplicationController
           
           Ragdoll::Search.create!(
             query: @query,
-            embedding: embedding,
-            document: embedding.document,
-            similarity_score: first_result[:similarity]
+            search_type: 'semantic',
+            result_count: @results.count,
+            model_name: Ragdoll.configuration.embedding_model
           )
         end
         
@@ -74,7 +74,7 @@ class SearchController < ApplicationController
       unique_queries: Ragdoll::Search.distinct.count(:query),
       searches_today: Ragdoll::Search.where('created_at > ?', 1.day.ago).count,
       searches_this_week: Ragdoll::Search.where('created_at > ?', 1.week.ago).count,
-      average_similarity: Ragdoll::Search.average(:similarity_score)&.round(3) || 0
+      average_results: Ragdoll::Search.average(:result_count)&.round(3) || 0
     }
     
     @top_queries = Ragdoll::Search
@@ -88,18 +88,12 @@ class SearchController < ApplicationController
       .group('DATE(created_at)')
       .count
     
-    @top_documents = Ragdoll::Search
-      .joins(:document)
-      .group('ragdoll_documents.title')
-      .order('COUNT(*) DESC')
-      .limit(10)
-      .count
+    # Note: Search model doesn't have document association
+    # This would need to be implemented differently with proper associations
+    @top_documents = {}
     
-    @similarity_distribution = Ragdoll::Search
-      .where('similarity_score IS NOT NULL')
-      .group('ROUND(similarity_score::numeric, 1)')
-      .count
-      .transform_keys(&:to_f)
-      .sort
+    # Note: Search model doesn't have similarity_score field
+    # This would need to be implemented differently with proper schema
+    @similarity_distribution = {}
   end
 end

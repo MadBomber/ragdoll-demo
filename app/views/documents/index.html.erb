@@ -87,11 +87,11 @@
                         </span>
                       </td>
                       <td>
-                        <span class="badge bg-info"><%= document.embeddings.count %></span>
+                        <span class="badge bg-info"><%= document.ragdoll_embeddings.count %></span>
                       </td>
                       <td>
-                        <% if document.content_length %>
-                          <%= number_to_human_size(document.content_length) %>
+                        <% if document.character_count > 0 %>
+                          <%= pluralize(document.character_count, 'character') %>
                         <% else %>
                           <span class="text-muted">-</span>
                         <% end %>
