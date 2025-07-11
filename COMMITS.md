@@ -2,7 +2,7 @@
 
 A Git commit message includes:
 
-1. **Subject line**: starts with the JIRA ticket and is 50 characters or less, imperative mood.
+1. **Subject line**: is 50 characters or less, imperative mood.
   - Example: `Fix bug in user login`
 
 2. **Body** (optional): Explain the "why" and "how", wrapped at 72 characters.

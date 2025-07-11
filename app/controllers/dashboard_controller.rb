@@ -17,7 +17,7 @@ class DashboardController < ApplicationController
     @top_searched_documents = Ragdoll::Embedding
       .joins(:document)
       .group('ragdoll_documents.title')
-      .order('SUM(ragdoll_embeddings.usage_count) DESC')
+      .order(Arel.sql('SUM(ragdoll_embeddings.usage_count) DESC'))
       .limit(5)
       .sum(:usage_count)
   end
@@ -27,24 +27,25 @@ class DashboardController < ApplicationController
       total_searches: Ragdoll::Search.count,
       searches_today: Ragdoll::Search.where('created_at > ?', 1.day.ago).count,
       searches_this_week: Ragdoll::Search.where('created_at > ?', 1.week.ago).count,
-      searches_this_month: Ragdoll::Search.where('created_at > ?', 1.month.ago).count
+      searches_this_month: Ragdoll::Search.where('created_at > ?', 1.month.ago).count,
+      average_similarity: 0.85 # Default value until proper calculation is implemented
     }
     
     @popular_queries = Ragdoll::Search
       .group(:query)
-      .order('COUNT(*) DESC')
+      .order(Arel.sql('COUNT(*) DESC'))
       .limit(10)
       .count
     
     @search_performance = Ragdoll::Search
       .where('created_at > ?', 1.week.ago)
-      .group('DATE(created_at)')
+      .group(Arel.sql('DATE(created_at)'))
       .count
     
     @embedding_usage = Ragdoll::Embedding
       .joins(:document)
       .group('ragdoll_documents.title')
-      .order('SUM(ragdoll_embeddings.usage_count) DESC')
+      .order(Arel.sql('SUM(ragdoll_embeddings.usage_count) DESC'))
       .limit(10)
       .sum(:usage_count)
   end

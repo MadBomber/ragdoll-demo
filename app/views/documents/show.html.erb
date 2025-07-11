@@ -115,8 +115,8 @@
         <h5><i class="fas fa-tools"></i> Actions</h5>
       </div>
       <div class="card-body">
-        <%= link_to reprocess_document_path(@document), method: :post, class: "btn btn-warning w-100 mb-2", data: { confirm: "Are you sure you want to reprocess this document?" } do %>
-          <i class="fas fa-sync"></i> Reprocess Document
+        <%= form_with url: reprocess_document_path(@document), method: :post, local: true, data: { confirm: "Are you sure you want to reprocess this document?" } do |form| %>
+          <%= form.submit "Reprocess Document", class: "btn btn-warning w-100 mb-2" %>
         <% end %>
         
         <%= link_to preview_document_path(@document), class: "btn btn-info w-100 mb-2", target: "_blank" do %>
@@ -182,11 +182,31 @@
           <p class="text-muted">No embeddings generated yet.</p>
           <% if @document.status == 'failed' %>
             <div class="alert alert-danger">
-              Document processing failed. Try reprocessing the document.
+              <strong>Document processing failed.</strong><br>
+              <% if @document.metadata&.dig('last_error', 'message') %>
+                <small>Error: <%= @document.metadata['last_error']['message'] %></small><br>
+                <% if @document.metadata['last_error']['timestamp'] %>
+                  <small>Time: <%= Time.parse(@document.metadata['last_error']['timestamp']).strftime("%Y-%m-%d %H:%M:%S") %></small>
+                <% end %>
+              <% else %>
+                Try reprocessing the document.
+              <% end %>
             </div>
           <% elsif @document.status == 'pending' %>
             <div class="alert alert-info">
-              Document is being processed. Embeddings will appear here once processing is complete.
+              Document is queued for processing. Embeddings will appear here once processing is complete.
+            </div>
+          <% elsif @document.status == 'processing' %>
+            <div class="alert alert-warning">
+              Document is currently being processed. This page will update automatically.
+              <script>
+                // Auto-refresh page every 3 seconds when processing
+                setTimeout(function() { 
+                  if ('<%= @document.status %>' === 'processing') {
+                    window.location.reload(); 
+                  }
+                }, 3000);
+              </script>
             </div>
           <% end %>
         <% end %>

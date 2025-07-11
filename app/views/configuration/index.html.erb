@@ -14,12 +14,12 @@
         <h5><i class="fas fa-wrench"></i> Engine Configuration</h5>
       </div>
       <div class="card-body">
-        <%= form_with model: @configuration, url: configuration_path, method: :patch, local: true, class: "needs-validation", novalidate: true do |form| %>
+        <%= form_with url: configuration_path, method: :patch, local: true, class: "needs-validation", novalidate: true do |form| %>
           <div class="row">
             <div class="col-md-6">
               <div class="mb-3">
                 <label class="form-label">LLM Provider</label>
-                <%= form.select :llm_provider, 
+                <%= form.select "configuration[llm_provider]", 
                     options_for_select(@available_providers.map { |p| [p.titleize, p] }, @configuration.llm_provider), 
                     {}, 
                     { class: "form-select" } %>
@@ -29,7 +29,7 @@
             <div class="col-md-6">
               <div class="mb-3">
                 <label class="form-label">Embedding Provider</label>
-                <%= form.select :embedding_provider, 
+                <%= form.select "configuration[embedding_provider]", 
                     options_for_select(@available_providers.map { |p| [p.titleize, p] }, @configuration.embedding_provider), 
                     {}, 
                     { class: "form-select" } %>
@@ -39,7 +39,7 @@
           
           <div class="mb-3">
             <label class="form-label">Embedding Model</label>
-            <%= form.select :embedding_model, 
+            <%= form.select "configuration[embedding_model]", 
                 options_for_select(@available_models[@configuration.embedding_provider.to_sym]&.map { |m| [m, m] } || [], @configuration.embedding_model), 
                 {}, 
                 { class: "form-select" } %>
@@ -52,7 +52,7 @@
             <div class="col-md-6">
               <div class="mb-3">
                 <label class="form-label">Chunk Size</label>
-                <%= form.number_field :chunk_size, value: @configuration.chunk_size, min: 100, max: 5000, class: "form-control" %>
+                <%= form.number_field "configuration[chunk_size]", value: @configuration.chunk_size, min: 100, max: 5000, class: "form-control" %>
                 <div class="form-text">Characters per chunk (100-5000)</div>
               </div>
             </div>
@@ -60,7 +60,7 @@
             <div class="col-md-6">
               <div class="mb-3">
                 <label class="form-label">Chunk Overlap</label>
-                <%= form.number_field :chunk_overlap, value: @configuration.chunk_overlap, min: 0, max: 1000, class: "form-control" %>
+                <%= form.number_field "configuration[chunk_overlap]", value: @configuration.chunk_overlap, min: 0, max: 1000, class: "form-control" %>
                 <div class="form-text">Overlap between chunks (0-1000)</div>
               </div>
             </div>
@@ -70,14 +70,14 @@
             <div class="col-md-6">
               <div class="mb-3">
                 <label class="form-label">Max Search Results</label>
-                <%= form.number_field :max_search_results, value: @configuration.max_search_results, min: 1, max: 100, class: "form-control" %>
+                <%= form.number_field "configuration[max_search_results]", value: @configuration.max_search_results, min: 1, max: 100, class: "form-control" %>
               </div>
             </div>
             
             <div class="col-md-6">
               <div class="mb-3">
                 <label class="form-label">Similarity Threshold</label>
-                <%= form.number_field :search_similarity_threshold, value: @configuration.search_similarity_threshold, min: 0.0, max: 1.0, step: 0.1, class: "form-control" %>
+                <%= form.number_field "configuration[search_similarity_threshold]", value: @configuration.search_similarity_threshold, min: 0.0, max: 1.0, step: 0.1, class: "form-control" %>
               </div>
             </div>
           </div>
@@ -88,25 +88,25 @@
           <div class="row">
             <div class="col-md-6">
               <div class="form-check mb-3">
-                <%= form.check_box :enable_search_analytics, { checked: @configuration.enable_search_analytics }, "true", "false", class: "form-check-input" %>
-                <%= form.label :enable_search_analytics, "Enable Search Analytics", class: "form-check-label" %>
+                <%= form.check_box "configuration[enable_search_analytics]", { checked: @configuration.enable_search_analytics, class: "form-check-input" }, "true", "false" %>
+                <%= form.label "configuration[enable_search_analytics]", "Enable Search Analytics", class: "form-check-label" %>
               </div>
               
               <div class="form-check mb-3">
-                <%= form.check_box :enable_document_summarization, { checked: @configuration.enable_document_summarization }, "true", "false", class: "form-check-input" %>
-                <%= form.label :enable_document_summarization, "Enable Document Summarization", class: "form-check-label" %>
+                <%= form.check_box "configuration[enable_document_summarization]", { checked: @configuration.enable_document_summarization, class: "form-check-input" }, "true", "false" %>
+                <%= form.label "configuration[enable_document_summarization]", "Enable Document Summarization", class: "form-check-label" %>
               </div>
             </div>
             
             <div class="col-md-6">
               <div class="form-check mb-3">
-                <%= form.check_box :enable_usage_tracking, { checked: @configuration.enable_usage_tracking }, "true", "false", class: "form-check-input" %>
-                <%= form.label :enable_usage_tracking, "Enable Usage Tracking", class: "form-check-label" %>
+                <%= form.check_box "configuration[enable_usage_tracking]", { checked: @configuration.enable_usage_tracking, class: "form-check-input" }, "true", "false" %>
+                <%= form.label "configuration[enable_usage_tracking]", "Enable Usage Tracking", class: "form-check-label" %>
               </div>
               
               <div class="form-check mb-3">
-                <%= form.check_box :usage_ranking_enabled, { checked: @configuration.usage_ranking_enabled }, "true", "false", class: "form-check-input" %>
-                <%= form.label :usage_ranking_enabled, "Enable Usage-Based Ranking", class: "form-check-label" %>
+                <%= form.check_box "configuration[usage_ranking_enabled]", { checked: @configuration.usage_ranking_enabled, class: "form-check-input" }, "true", "false" %>
+                <%= form.label "configuration[usage_ranking_enabled]", "Enable Usage-Based Ranking", class: "form-check-label" %>
               </div>
             </div>
           </div>
@@ -118,34 +118,34 @@
             <div class="col-md-6">
               <div class="mb-3">
                 <label class="form-label">OpenAI API Key</label>
-                <%= form.password_field :openai_api_key, placeholder: "sk-...", class: "form-control" %>
+                <%= form.password_field :openai_api_key, value: @configuration.openai_api_key, placeholder: "sk-...", class: "form-control" %>
               </div>
               
               <div class="mb-3">
                 <label class="form-label">Anthropic API Key</label>
-                <%= form.password_field :anthropic_api_key, placeholder: "sk-ant-...", class: "form-control" %>
+                <%= form.password_field :anthropic_api_key, value: @configuration.anthropic_api_key, placeholder: "sk-ant-...", class: "form-control" %>
               </div>
               
               <div class="mb-3">
                 <label class="form-label">Google API Key</label>
-                <%= form.password_field :google_api_key, placeholder: "AIza...", class: "form-control" %>
+                <%= form.password_field :google_api_key, value: @configuration.google_api_key, placeholder: "AIza...", class: "form-control" %>
               </div>
             </div>
             
             <div class="col-md-6">
               <div class="mb-3">
                 <label class="form-label">Azure API Key</label>
-                <%= form.password_field :azure_api_key, placeholder: "...", class: "form-control" %>
+                <%= form.password_field :azure_api_key, value: @configuration.azure_api_key, placeholder: "...", class: "form-control" %>
               </div>
               
               <div class="mb-3">
                 <label class="form-label">Ollama URL</label>
-                <%= form.url_field :ollama_url, placeholder: "http://localhost:11434", class: "form-control" %>
+                <%= form.url_field :ollama_url, value: @configuration.ollama_url, placeholder: "http://localhost:11434", class: "form-control" %>
               </div>
               
               <div class="mb-3">
                 <label class="form-label">Hugging Face API Key</label>
-                <%= form.password_field :huggingface_api_key, placeholder: "hf_...", class: "form-control" %>
+                <%= form.password_field :huggingface_api_key, value: @configuration.huggingface_api_key, placeholder: "hf_...", class: "form-control" %>
               </div>
             </div>
           </div>

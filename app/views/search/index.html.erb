@@ -195,9 +195,10 @@
               </a>
               <br>
               <small class="text-muted">
-                Found in: <%= search.document.title %>
-                <% if search.similarity_score %>
-                  • <%= number_with_precision(search.similarity_score, precision: 3) %>
+                Search type: <%= search.search_type.titleize %>
+                • Results: <%= search.result_count %>
+                <% if search.model_name %>
+                  • Model: <%= search.model_name %>
                 <% end %>
               </small>
               <br>
