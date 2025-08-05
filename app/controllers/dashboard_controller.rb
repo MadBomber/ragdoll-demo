@@ -6,16 +6,17 @@ class DashboardController < ApplicationController
       failed_documents: Ragdoll::Document.where(status: 'failed').count,
       pending_documents: Ragdoll::Document.where(status: 'pending').count,
       total_embeddings: Ragdoll::Embedding.count,
-      total_searches: Ragdoll::Search.count,
-      recent_searches: Ragdoll::Search.order(created_at: :desc).limit(5)
+      total_searches: 0,  # Search tracking not yet implemented
+      recent_searches: []  # Search tracking not yet implemented
     }
     
     @document_types = Ragdoll::Document.group(:document_type).count
     @recent_documents = Ragdoll::Document.order(created_at: :desc).limit(10)
     
-    # Usage analytics
+    # Usage analytics - join through embeddable (Content) to get to documents
     @top_searched_documents = Ragdoll::Embedding
-      .joins(:document)
+      .joins("JOIN ragdoll_contents ON ragdoll_contents.id = ragdoll_embeddings.embeddable_id")
+      .joins("JOIN ragdoll_documents ON ragdoll_documents.id = ragdoll_contents.document_id")
       .group('ragdoll_documents.title')
       .order(Arel.sql('SUM(ragdoll_embeddings.usage_count) DESC'))
       .limit(5)
@@ -24,26 +25,20 @@ class DashboardController < ApplicationController
   
   def analytics
     @search_analytics = {
-      total_searches: Ragdoll::Search.count,
-      searches_today: Ragdoll::Search.where('created_at > ?', 1.day.ago).count,
-      searches_this_week: Ragdoll::Search.where('created_at > ?', 1.week.ago).count,
-      searches_this_month: Ragdoll::Search.where('created_at > ?', 1.month.ago).count,
+      total_searches: 0,  # Search tracking not yet implemented
+      searches_today: 0,
+      searches_this_week: 0,
+      searches_this_month: 0,
       average_similarity: 0.85 # Default value until proper calculation is implemented
     }
     
-    @popular_queries = Ragdoll::Search
-      .group(:query)
-      .order(Arel.sql('COUNT(*) DESC'))
-      .limit(10)
-      .count
+    @popular_queries = {}  # Search tracking not yet implemented
     
-    @search_performance = Ragdoll::Search
-      .where('created_at > ?', 1.week.ago)
-      .group(Arel.sql('DATE(created_at)'))
-      .count
+    @search_performance = {}  # Search tracking not yet implemented
     
     @embedding_usage = Ragdoll::Embedding
-      .joins(:document)
+      .joins("JOIN ragdoll_contents ON ragdoll_contents.id = ragdoll_embeddings.embeddable_id")
+      .joins("JOIN ragdoll_documents ON ragdoll_documents.id = ragdoll_contents.document_id")
       .group('ragdoll_documents.title')
       .order(Arel.sql('SUM(ragdoll_embeddings.usage_count) DESC'))
       .limit(10)

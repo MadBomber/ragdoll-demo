@@ -1,1 +1,6 @@
 .aigcm_msg
+
+# ClaudeOnRails
+.claude-on-rails/sessions/
+.claude-swarm/
+claude-swarm.log

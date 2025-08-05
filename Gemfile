@@ -45,5 +45,5 @@ end
 
 group :development do
   gem "web-console"
-  gem 'rails_lens', git: 'ssh://git@github.com/seuros/rails_lens'
+  gem "hotwire-livereload"  # Auto-refresh browser on file changes
 end
