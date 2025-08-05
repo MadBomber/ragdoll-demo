@@ -1,3 +1,19 @@
+PATH
+  remote: ../ragdoll-cli
+  specs:
+    ragdoll-cli (0.1.8)
+      ragdoll
+      ruby-progressbar
+      thor
+
+PATH
+  remote: ../ragdoll-rails
+  specs:
+    ragdoll-rails (0.1.8)
+      ragdoll
+      rails (>= 8.0.2)
+      sidekiq
+
 GIT
   remote: ssh://git@github.com/seuros/rails_lens
   revision: f1e08f1ca02b4043ce4bd6952544bbade5a577a5
@@ -242,6 +258,16 @@ GEM
     mime-types-data (3.2025.0729)
     mini_mime (1.1.5)
     minitest (5.25.5)
+    mission_control-jobs (1.1.0)
+      actioncable (>= 7.1)
+      actionpack (>= 7.1)
+      activejob (>= 7.1)
+      activerecord (>= 7.1)
+      importmap-rails (>= 1.2.1)
+      irb (~> 1.13)
+      railties (>= 7.1)
+      stimulus-rails
+      turbo-rails
     msgpack (1.8.0)
     multipart-post (2.4.1)
     net-http (0.6.0)
@@ -313,10 +339,6 @@ GEM
     rackup (2.2.1)
       rack (>= 3)
     ragdoll (0.1.8)
-    ragdoll-cli (0.1.8)
-    ragdoll-rails (0.1.8)
-      ragdoll (>= 0.1.0)
-      rails (>= 7.0.0)
     rails (8.0.2)
       actioncable (= 8.0.2)
       actionmailbox (= 8.0.2)
@@ -351,6 +373,8 @@ GEM
     rdoc (6.14.2)
       erb
       psych (>= 4.0.0)
+    redis-client (0.25.1)
+      connection_pool
     regexp_parser (2.11.0)
     reline (0.6.2)
       io-console (~> 0.5)
@@ -392,6 +416,12 @@ GEM
       faraday-multipart (>= 1)
     ruby-progressbar (1.13.0)
     securerandom (0.4.1)
+    sidekiq (8.0.6)
+      connection_pool (>= 2.5.0)
+      json (>= 2.9.0)
+      logger (>= 1.6.2)
+      rack (>= 3.1.0)
+      redis-client (>= 0.23.2)
     solid_cable (3.0.11)
       actioncable (>= 7.2)
       activejob (>= 7.2)
@@ -465,11 +495,12 @@ DEPENDENCIES
   importmap-rails
   jbuilder
   kamal
+  mission_control-jobs
   pg
   propshaft
   puma
-  ragdoll-cli
-  ragdoll-rails
+  ragdoll-cli!
+  ragdoll-rails!
   rails (~> 8.0.2)
   rails_lens!
   rubocop-rails-omakase
