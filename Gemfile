@@ -4,10 +4,11 @@ source "https://rubygems.org"
 gem "rails", "~> 8.0.2"
 
 gem "ragdoll-rails"
+gem "ragdoll-cli"    # Optional; does order of ragdoll gems matter?
 
 gem "propshaft"
-gem "pg", "~> 1.1"
-gem "puma", ">= 5.0"
+gem "pg"
+gem "puma"
 gem "importmap-rails"
 gem "turbo-rails"
 gem "stimulus-rails"
