@@ -45,25 +45,42 @@
           </div>
           
           <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-3">
+              <div class="mb-3">
+                <label class="form-label">Search Types</label>
+                <div class="form-check">
+                  <%= form.check_box :use_similarity_search, { checked: params[:use_similarity_search] != 'false', class: "form-check-input" }, "true", "false" %>
+                  <%= form.label :use_similarity_search, "Similarity Search", class: "form-check-label" %>
+                  <small class="form-text text-muted d-block">AI-powered semantic search</small>
+                </div>
+                <div class="form-check mt-2">
+                  <%= form.check_box :use_fulltext_search, { checked: params[:use_fulltext_search] != 'false', class: "form-check-input" }, "true", "false" %>
+                  <%= form.label :use_fulltext_search, "Full Text Search", class: "form-check-label" %>
+                  <small class="form-text text-muted d-block">Traditional keyword matching</small>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-3">
               <div class="mb-3">
                 <label class="form-label">Max Results</label>
                 <%= form.number_field :limit, value: @filters[:limit], min: 1, max: 50, class: "form-control" %>
               </div>
             </div>
             
-            <div class="col-md-4">
+            <div class="col-md-3">
               <div class="mb-3">
                 <label class="form-label">Similarity Threshold</label>
                 <%= form.number_field :threshold, value: @filters[:threshold], min: 0.0, max: 1.0, step: 0.1, class: "form-control" %>
+                <small class="form-text text-muted">For similarity search only</small>
               </div>
             </div>
             
-            <div class="col-md-4">
+            <div class="col-md-3">
               <div class="mb-3">
-                <label class="form-label">Features</label>
+                <label class="form-label">Additional Options</label>
                 <div class="form-check">
-                  <%= form.check_box :use_usage_ranking, { checked: params[:use_usage_ranking] == 'true' }, "true", "false" %>
+                  <%= form.check_box :use_usage_ranking, { checked: params[:use_usage_ranking] == 'true', class: "form-check-input" }, "true", "false" %>
                   <%= form.label :use_usage_ranking, "Use Usage Ranking", class: "form-check-label" %>
                 </div>
               </div>
@@ -95,13 +112,26 @@
                       <h6 class="card-title">
                         <%= link_to result[:document].title, document_path(result[:document]), class: "text-decoration-none" %>
                         <span class="badge bg-secondary ms-2"><%= result[:document].document_type&.upcase %></span>
+                        <% if result[:search_type] == 'similarity' %>
+                          <span class="badge bg-info ms-1" title="Found via AI-powered similarity search">
+                            <i class="fas fa-brain"></i> Similarity
+                          </span>
+                        <% elsif result[:search_type] == 'fulltext' %>
+                          <span class="badge bg-success ms-1" title="Found via full-text keyword search">
+                            <i class="fas fa-font"></i> Full Text
+                          </span>
+                        <% end %>
                       </h6>
                       <p class="card-text"><%= result[:content] %></p>
                       <div class="d-flex align-items-center">
                         <small class="text-muted">
-                          Chunk <%= result[:embedding].chunk_index %>
+                          <% if result[:embedding] %>
+                            Chunk <%= result[:embedding].chunk_index %>
+                          <% else %>
+                            Document summary
+                          <% end %>
                         </small>
-                        <% if result[:usage_count] > 0 %>
+                        <% if result[:usage_count] && result[:usage_count] > 0 %>
                           <span class="badge bg-success ms-2"><%= result[:usage_count] %> uses</span>
                         <% end %>
                         <% if result[:last_used] %>
@@ -112,13 +142,20 @@
                       </div>
                     </div>
                     <div class="text-end">
-                      <div class="similarity-score">
-                        <span class="badge bg-info">
-                          <%= number_with_precision(result[:similarity], precision: 3) %>
-                        </span>
-                        <br>
-                        <small class="text-muted">similarity</small>
-                      </div>
+                      <% if result[:similarity] %>
+                        <div class="similarity-score">
+                          <span class="badge bg-info">
+                            <%= number_with_precision(result[:similarity], precision: 3) %>
+                          </span>
+                          <br>
+                          <small class="text-muted">similarity</small>
+                        </div>
+                      <% else %>
+                        <div class="text-muted">
+                          <i class="fas fa-font"></i><br>
+                          <small>Keyword Match</small>
+                        </div>
+                      <% end %>
                     </div>
                   </div>
                 </div>

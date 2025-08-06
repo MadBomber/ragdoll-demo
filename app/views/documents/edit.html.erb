@@ -19,7 +19,7 @@
         <h5><i class="fas fa-edit"></i> Edit Document Information</h5>
       </div>
       <div class="card-body">
-        <%= form_with model: @document, local: true, class: "needs-validation", novalidate: true do |form| %>
+        <%= form_with model: @document, url: document_path(@document), local: true, class: "needs-validation", novalidate: true, as: :ragdoll_document do |form| %>
           <% if @document.errors.any? %>
             <div class="alert alert-danger">
               <h6>Please correct the following errors:</h6>
@@ -103,18 +103,18 @@
           
           <dt>Content Length:</dt>
           <dd>
-            <% if @document.character_count > 0 %>
-              <%= pluralize(@document.character_count, 'character') %>
+            <% if @document.total_character_count > 0 %>
+              <%= pluralize(@document.total_character_count, 'character') %>
             <% else %>
               Unknown
             <% end %>
           </dd>
           
           <dt>Chunks:</dt>
-          <dd><%= @document.ragdoll_embeddings.count %></dd>
+          <dd><%= @document.all_embeddings.count %></dd>
           
           <dt>Embeddings:</dt>
-          <dd><%= @document.ragdoll_embeddings.count %></dd>
+          <dd><%= @document.all_embeddings.count %></dd>
           
           <dt>Created:</dt>
           <dd><%= @document.created_at.strftime("%B %d, %Y") %></dd>

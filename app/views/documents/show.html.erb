@@ -37,8 +37,8 @@
               
               <dt class="col-sm-4">Size:</dt>
               <dd class="col-sm-8">
-                <% if @document.character_count > 0 %>
-                  <%= pluralize(@document.character_count, 'character') %>
+                <% if @document.total_character_count > 0 %>
+                  <%= pluralize(@document.total_character_count, 'character') %>
                 <% else %>
                   <span class="text-muted">Unknown</span>
                 <% end %>
@@ -46,7 +46,7 @@
               
               <dt class="col-sm-4">Chunks:</dt>
               <dd class="col-sm-8">
-                <span class="badge bg-info"><%= @document.ragdoll_embeddings.count %></span>
+                <span class="badge bg-info"><%= @document.all_embeddings.count %></span>
               </dd>
             </dl>
           </div>
@@ -157,13 +157,7 @@
                       <% end %>
                     </div>
                     <small class="text-muted">
-                      <%= begin
-                        if embedding.embedding.present?
-                          JSON.parse(embedding.embedding).size rescue 0
-                        else
-                          0
-                        end
-                      end %> dims
+                      <%= embedding.embedding_dimensions %> dims
                     </small>
                   </div>
                   <p class="mb-1 small">

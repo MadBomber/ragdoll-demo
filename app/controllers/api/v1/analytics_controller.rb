@@ -9,49 +9,32 @@ class Api::V1::AnalyticsController < Api::V1::BaseController
         total_embeddings: Ragdoll::Embedding.count
       },
       
+      # TODO: Implement search tracking
       search_stats: {
-        total_searches: Ragdoll::Search.count,
-        unique_queries: Ragdoll::Search.distinct.count(:query),
-        searches_today: Ragdoll::Search.where('created_at > ?', 1.day.ago).count,
-        searches_this_week: Ragdoll::Search.where('created_at > ?', 1.week.ago).count,
-        average_similarity: Ragdoll::Search.average(:similarity_score)&.round(3) || 0
+        total_searches: 0,
+        unique_queries: 0,
+        searches_today: 0,
+        searches_this_week: 0,
+        average_similarity: 0
       },
       
-      popular_queries: Ragdoll::Search
-        .group(:query)
-        .order('COUNT(*) DESC')
-        .limit(10)
-        .count,
+      popular_queries: {},
       
       document_types: Ragdoll::Document.group(:document_type).count,
       
-      top_documents: Ragdoll::Search
-        .joins(:document)
-        .group('ragdoll_documents.title')
-        .order('COUNT(*) DESC')
-        .limit(10)
-        .count,
+      top_documents: {},
       
-      search_trends: Ragdoll::Search
-        .where('created_at > ?', 30.days.ago)
-        .group('DATE(created_at)')
-        .count
-        .transform_keys(&:to_s),
+      search_trends: {},
       
       embedding_usage: Ragdoll::Embedding
-        .joins(:document)
+        .joins("JOIN ragdoll_contents ON ragdoll_contents.id = ragdoll_embeddings.embeddable_id")
+        .joins("JOIN ragdoll_documents ON ragdoll_documents.id = ragdoll_contents.document_id")
         .group('ragdoll_documents.title')
         .order('SUM(ragdoll_embeddings.usage_count) DESC')
         .limit(10)
         .sum(:usage_count),
       
-      similarity_distribution: Ragdoll::Search
-        .where('similarity_score IS NOT NULL')
-        .group('ROUND(similarity_score::numeric, 1)')
-        .count
-        .transform_keys(&:to_f)
-        .sort
-        .to_h
+      similarity_distribution: {}
     }
     
     render json: analytics_data

@@ -2,7 +2,7 @@ class Api::V1::DocumentsController < Api::V1::BaseController
   before_action :set_document, only: [:show, :update, :destroy, :reprocess]
   
   def index
-    documents = Ragdoll::Document.includes(:ragdoll_embeddings)
+    documents = Ragdoll::Document.all
     documents = documents.where(status: params[:status]) if params[:status].present?
     documents = documents.where(document_type: params[:document_type]) if params[:document_type].present?
     documents = documents.order(created_at: :desc)
@@ -16,7 +16,7 @@ class Api::V1::DocumentsController < Api::V1::BaseController
   def show
     render json: {
       document: document_json(@document),
-      embeddings: @document.ragdoll_embeddings.map(&method(:embedding_json))
+      embeddings: @document.all_embeddings.map(&method(:embedding_json))
     }
   end
   
@@ -76,9 +76,9 @@ class Api::V1::DocumentsController < Api::V1::BaseController
   
   def reprocess
     begin
-      @document.ragdoll_embeddings.destroy_all
+      @document.all_embeddings.destroy_all
       @document.update(status: 'pending')
-      Ragdoll::ImportFileJob.perform_later(@document.id)
+      Ragdoll::GenerateEmbeddingsJob.perform_later(@document.id)
       
       render_success({}, "Document reprocessing initiated")
     rescue => e
@@ -107,9 +107,9 @@ class Api::V1::DocumentsController < Api::V1::BaseController
       location: document.location,
       metadata: document.metadata,
       status: document.status,
-      character_count: document.character_count,
-      word_count: document.word_count,
-      embedding_count: document.ragdoll_embeddings.count,
+      character_count: document.total_character_count,
+      word_count: document.total_word_count,
+      embedding_count: document.all_embeddings.count,
       created_at: document.created_at,
       updated_at: document.updated_at
     }
@@ -121,13 +121,7 @@ class Api::V1::DocumentsController < Api::V1::BaseController
       content: embedding.content,
       chunk_index: embedding.chunk_index,
       model_name: embedding.model_name,
-      vector_dimensions: begin
-        if embedding.embedding.present?
-          JSON.parse(embedding.embedding).size rescue 0
-        else
-          0
-        end
-      end,
+      vector_dimensions: embedding.embedding_dimensions,
       usage_count: embedding.usage_count,
       last_used_at: embedding.returned_at,
       created_at: embedding.created_at

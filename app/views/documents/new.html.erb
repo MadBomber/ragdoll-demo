@@ -35,7 +35,7 @@
         <div class="tab-content">
           <!-- File Upload Tab -->
           <div class="tab-pane fade show active" id="file-upload" role="tabpanel">
-            <%= form_with model: @document, local: true, multipart: true, class: "needs-validation", novalidate: true do |form| %>
+            <%= form_with model: @document, url: documents_path, local: true, multipart: true, class: "needs-validation", novalidate: true, as: :ragdoll_document do |form| %>
               <div class="mb-3">
                 <label for="document_files" class="form-label">Select Files</label>
                 <%= form.file_field :files, multiple: true, accept: ".pdf,.docx,.txt,.md,.html,.json,.xml,.csv", class: "form-control", required: true %>
@@ -55,13 +55,16 @@
                 </div>
               </div>
               
-              <%= form.submit "Upload Files", class: "btn btn-primary" %>
+              <button type="submit" class="btn btn-primary" id="upload-files-btn">
+                <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+                <span class="btn-text">Upload Files</span>
+              </button>
             <% end %>
           </div>
           
           <!-- Text Content Tab -->
           <div class="tab-pane fade" id="text-content" role="tabpanel">
-            <%= form_with model: @document, local: true, class: "needs-validation", novalidate: true do |form| %>
+            <%= form_with model: @document, url: documents_path, local: true, class: "needs-validation", novalidate: true, as: :ragdoll_document do |form| %>
               <div class="mb-3">
                 <label for="document_title" class="form-label">Title</label>
                 <%= form.text_field :title, placeholder: "Enter document title", class: "form-control", required: true %>
@@ -92,7 +95,7 @@
           
           <!-- Directory Upload Tab -->
           <div class="tab-pane fade" id="directory-upload" role="tabpanel">
-            <%= form_with url: bulk_upload_documents_path, method: :post, local: true, class: "needs-validation", novalidate: true do |form| %>
+            <%= form_with url: bulk_upload_documents_path, method: :post, local: true, class: "needs-validation", novalidate: true, id: "directory-upload-form" do |form| %>
               <div class="mb-3">
                 <label for="directory_path" class="form-label">Directory Path</label>
                 <%= form.text_field :directory_path, placeholder: "/path/to/documents", class: "form-control", required: true %>
@@ -110,7 +113,16 @@
                 Large directories may take some time to process.
               </div>
               
-              <%= form.submit "Import Directory", class: "btn btn-warning" %>
+              <button type="submit" class="btn btn-warning" id="import-directory-btn">
+                <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+                <span class="btn-text">Import Directory</span>
+              </button>
+              
+              <div class="alert alert-warning mt-3 d-none" id="processing-alert">
+                <i class="fas fa-spinner fa-spin"></i>
+                <strong>Processing...</strong> Your directory is being imported. This may take several minutes for large directories.
+                Please do not close this page.
+              </div>
             <% end %>
           </div>
         </div>
@@ -175,4 +187,74 @@
     });
   }, false);
 })();
+
+// Directory upload feedback
+document.addEventListener('DOMContentLoaded', function() {
+  const directoryForm = document.getElementById('directory-upload-form');
+  const importBtn = document.getElementById('import-directory-btn');
+  const processingAlert = document.getElementById('processing-alert');
+  
+  if (directoryForm) {
+    directoryForm.addEventListener('submit', function(e) {
+      // Check if form is valid
+      if (!directoryForm.checkValidity()) {
+        return;
+      }
+      
+      // Show loading state
+      const spinner = importBtn.querySelector('.spinner-border');
+      const btnText = importBtn.querySelector('.btn-text');
+      
+      // Disable the button and show spinner
+      importBtn.disabled = true;
+      spinner.classList.remove('d-none');
+      btnText.textContent = 'Importing...';
+      
+      // Show processing alert
+      processingAlert.classList.remove('d-none');
+      
+      // Add a class to indicate processing
+      directoryForm.classList.add('processing');
+    });
+  }
+  
+  // Handle file upload feedback
+  const uploadFilesBtn = document.getElementById('upload-files-btn');
+  if (uploadFilesBtn) {
+    const uploadForm = uploadFilesBtn.closest('form');
+    uploadForm.addEventListener('submit', function(e) {
+      const fileInput = uploadForm.querySelector('input[type="file"]');
+      const files = fileInput ? fileInput.files : [];
+      
+      if (files && files.length > 0) {
+        // Show loading state
+        const spinner = uploadFilesBtn.querySelector('.spinner-border');
+        const btnText = uploadFilesBtn.querySelector('.btn-text');
+        
+        // Disable the button and show spinner
+        uploadFilesBtn.disabled = true;
+        spinner.classList.remove('d-none');
+        btnText.textContent = 'Uploading ' + files.length + ' file(s)...';
+      }
+    });
+  }
+  
+  // Handle text content form
+  const textForms = document.querySelectorAll('form');
+  textForms.forEach(function(form) {
+    if (form.querySelector('textarea[name*="text_content"]')) {
+      form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          if (submitBtn.tagName === 'BUTTON') {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+          } else {
+            submitBtn.value = 'Processing...';
+          }
+        }
+      });
+    }
+  });
+});
 </script>

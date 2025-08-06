@@ -103,15 +103,15 @@
                 <dl>
                   <dt>Content Length:</dt>
                   <dd>
-                    <% if @document.character_count > 0 %>
-                      <%= pluralize(@document.character_count, 'character') %>
+                    <% if @document.total_character_count > 0 %>
+                      <%= pluralize(@document.total_character_count, 'character') %>
                     <% else %>
                       Unknown
                     <% end %>
                   </dd>
                   
                   <dt>Chunks:</dt>
-                  <dd><%= @document.ragdoll_embeddings.count %></dd>
+                  <dd><%= @document.all_embeddings.count %></dd>
                 </dl>
               </div>
               

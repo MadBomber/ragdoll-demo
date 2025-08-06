@@ -6,15 +6,17 @@ class DocumentsController < ApplicationController
     @documents = @documents.where(status: params[:status]) if params[:status].present?
     @documents = @documents.where(document_type: params[:document_type]) if params[:document_type].present?
     @documents = @documents.where('title ILIKE ?', "%#{params[:search]}%") if params[:search].present?
-    @documents = @documents.includes(:ragdoll_embeddings).order(created_at: :desc)
+    @documents = @documents.order(created_at: :desc)
     
     @document_types = Ragdoll::Document.distinct.pluck(:document_type).compact
     @statuses = Ragdoll::Document.distinct.pluck(:status).compact
   end
   
   def show
-    @embeddings = @document.ragdoll_embeddings.order(created_at: :desc)
-    @recent_searches = Ragdoll::Search.order(created_at: :desc).limit(10)
+    @embeddings = @document.all_embeddings
+    # TODO: Implement search tracking
+    # @recent_searches = Ragdoll::Search.order(created_at: :desc).limit(10)
+    @recent_searches = []
   end
   
   def new
@@ -22,47 +24,55 @@ class DocumentsController < ApplicationController
   end
   
   def create
-    if params[:document][:files].present?
-      uploaded_files = params[:document][:files]
+    if params[:ragdoll_document] && params[:ragdoll_document][:files].present?
+      uploaded_files = params[:ragdoll_document][:files]
       @results = []
+      
+      # Ensure uploaded_files is always an array
+      uploaded_files = [uploaded_files] unless uploaded_files.is_a?(Array)
       
       uploaded_files.each do |file|
         begin
+          # Skip if file is not a valid upload object
+          next unless file.respond_to?(:original_filename)
+          
           # Save uploaded file temporarily
           temp_path = Rails.root.join('tmp', 'uploads', file.original_filename)
           FileUtils.mkdir_p(File.dirname(temp_path))
           File.binwrite(temp_path, file.read)
           
-          # Use Ragdoll client to add document
-          client = Ragdoll::Client.new
-          result = client.add_file(temp_path.to_s, {
-            title: file.original_filename,
-            metadata: {
-              original_filename: file.original_filename,
-              content_type: file.content_type,
-              size: file.size
-            }
-          })
+          # Use Ragdoll to add document
+          result = Ragdoll.add_document(path: temp_path.to_s)
           
-          @results << { file: file.original_filename, success: true, document: result }
+          # Get the actual document object if successful
+          if result[:success] && result[:document_id]
+            document = Ragdoll::Document.find(result[:document_id])
+            @results << { file: file.original_filename, success: true, document: document, message: result[:message] }
+          else
+            @results << { file: file.original_filename, success: false, error: result[:error] || "Unknown error" }
+          end
           
           # Clean up temp file
           File.delete(temp_path) if File.exist?(temp_path)
         rescue => e
-          @results << { file: file.original_filename, success: false, error: e.message }
+          filename = file.respond_to?(:original_filename) ? file.original_filename : file.to_s
+          @results << { file: filename, success: false, error: e.message }
         end
       end
       
       render :upload_results
-    elsif params[:document][:text_content].present?
+    elsif params[:ragdoll_document] && params[:ragdoll_document][:text_content].present?
       begin
-        client = Ragdoll::Client.new
-        @document = client.add_text(
-          params[:document][:text_content],
-          title: params[:document][:title] || "Text Document",
-          metadata: params[:document][:metadata] || {}
-        )
-        redirect_to @document, notice: 'Document was successfully created.'
+        # For text content, we need to save it as a file first since Ragdoll.add_document expects a file
+        temp_path = Rails.root.join('tmp', 'uploads', "#{SecureRandom.hex(8)}.txt")
+        FileUtils.mkdir_p(File.dirname(temp_path))
+        File.write(temp_path, params[:ragdoll_document][:text_content])
+        
+        @document = Ragdoll.add_document(path: temp_path.to_s)
+        
+        # Clean up temp file
+        File.delete(temp_path) if File.exist?(temp_path)
+        redirect_to document_path(@document), notice: 'Document was successfully created.'
       rescue => e
         @document = Ragdoll::Document.new
         @document.errors.add(:base, e.message)
@@ -80,7 +90,7 @@ class DocumentsController < ApplicationController
   
   def update
     if @document.update(document_params)
-      redirect_to @document, notice: 'Document was successfully updated.'
+      redirect_to document_path(@document), notice: 'Document was successfully updated.'
     else
       render :edit
     end
@@ -101,17 +111,17 @@ class DocumentsController < ApplicationController
   def reprocess
     begin
       # Delete existing embeddings
-      @document.ragdoll_embeddings.destroy_all
+      @document.all_embeddings.destroy_all
       
       # Reprocess document
       @document.update(status: 'pending')
       
       # Process embeddings in background
-      Ragdoll::ImportFileJob.perform_later(@document.id)
+      Ragdoll::GenerateEmbeddingsJob.perform_later(@document.id)
       
-      redirect_to @document, notice: 'Document reprocessing initiated.'
+      redirect_to document_path(@document), notice: 'Document reprocessing initiated.'
     rescue => e
-      redirect_to @document, alert: "Error reprocessing document: #{e.message}"
+      redirect_to document_path(@document), alert: "Error reprocessing document: #{e.message}"
     end
   end
   
@@ -119,15 +129,14 @@ class DocumentsController < ApplicationController
     if @document.location.present? && File.exist?(@document.location)
       send_file @document.location, filename: @document.title
     else
-      redirect_to @document, alert: 'File not found.'
+      redirect_to document_path(@document), alert: 'File not found.'
     end
   end
   
   def bulk_upload
     if params[:directory_path].present?
       begin
-        client = Ragdoll::Client.new
-        results = client.add_directory(params[:directory_path])
+        results = Ragdoll.add_directory(path: params[:directory_path])
         flash[:notice] = "Successfully processed #{results.count} files from directory."
       rescue => e
         flash[:alert] = "Error processing directory: #{e.message}"
@@ -154,9 +163,9 @@ class DocumentsController < ApplicationController
     if params[:document_ids].present?
       documents = Ragdoll::Document.where(id: params[:document_ids])
       documents.each do |document|
-        document.ragdoll_embeddings.destroy_all
+        document.all_embeddings.destroy_all
         document.update(status: 'pending')
-        Ragdoll::ImportFileJob.perform_later(document.id)
+        Ragdoll::GenerateEmbeddingsJob.perform_later(document.id)
       end
       flash[:notice] = "Reprocessing initiated for #{documents.count} documents."
     else
@@ -189,6 +198,6 @@ class DocumentsController < ApplicationController
   end
   
   def document_params
-    params.require(:document).permit(:title, :content, :metadata, :status)
+    params.require(:ragdoll_document).permit(:title, :content, :metadata, :status, :text_content, files: [])
   end
 end

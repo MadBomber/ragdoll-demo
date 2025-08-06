@@ -86,11 +86,11 @@
                       </span>
                     </td>
                     <td>
-                      <span class="badge bg-info"><%= document.ragdoll_embeddings.count %></span>
+                      <span class="badge bg-info"><%= document.all_embeddings.count %></span>
                     </td>
                     <td>
-                      <% if document.character_count > 0 %>
-                        <%= pluralize(document.character_count, 'character') %>
+                      <% if document.total_character_count > 0 %>
+                        <%= pluralize(document.total_character_count, 'character') %>
                       <% else %>
                         <span class="text-muted">-</span>
                       <% end %>
@@ -106,9 +106,15 @@
                         <%= link_to preview_document_path(document), class: "btn btn-outline-info btn-sm", data: { bs_toggle: "tooltip", bs_placement: "top" }, title: "Preview document content", target: "_blank" do %>
                           <i class="fas fa-search"></i>
                         <% end %>
-                        <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Reprocess document embeddings" onclick="reprocessDocument(<%= document.id %>)">
-                          <i class="fas fa-sync"></i>
-                        </button>
+                        <% if document.status == 'failed' %>
+                          <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry failed document" onclick="reprocessDocument(<%= document.id %>)">
+                            <i class="fas fa-redo"></i> Retry
+                          </button>
+                        <% elsif document.status == 'processed' %>
+                          <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Reprocess document embeddings" onclick="reprocessDocument(<%= document.id %>)">
+                            <i class="fas fa-sync"></i>
+                          </button>
+                        <% end %>
                         <%= link_to edit_document_path(document), class: "btn btn-outline-secondary btn-sm", data: { bs_toggle: "tooltip", bs_placement: "top" }, title: "Edit document details" do %>
                           <i class="fas fa-edit"></i>
                         <% end %>

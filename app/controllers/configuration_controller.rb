@@ -14,15 +14,8 @@ class ConfigurationController < ApplicationController
     @current_stats = {
       total_documents: Ragdoll::Document.count,
       total_embeddings: Ragdoll::Embedding.count,
-      embedding_dimensions: begin
-        first_embedding = Ragdoll::Embedding.first
-        if first_embedding&.embedding.present?
-          JSON.parse(first_embedding.embedding).size rescue 0
-        else
-          0
-        end
-      end,
-      average_chunk_size: Ragdoll::Document.average('LENGTH(content)')&.round || 0
+      embedding_dimensions: Ragdoll::Embedding.first&.embedding_dimensions || 0,
+      average_chunk_size: Ragdoll::Embedding.average('LENGTH(content)')&.round || 0
     }
   end
   

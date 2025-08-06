@@ -33,18 +33,18 @@ class Api::V1::SearchController < Api::V1::BaseController
         }
       end
       
-      # Save search for analytics if results found
-      if results.any?
-        first_result = results.first
-        embedding = Ragdoll::Embedding.find(first_result[:embedding_id])
-        
-        Ragdoll::Search.create!(
-          query: query,
-          search_type: 'semantic',
-          result_count: results.count,
-          model_name: Ragdoll.configuration.embedding_model
-        )
-      end
+      # TODO: Save search for analytics when search tracking is implemented
+      # if results.any?
+      #   first_result = results.first
+      #   embedding = Ragdoll::Embedding.find(first_result[:embedding_id])
+      #   
+      #   Ragdoll::Search.create!(
+      #     query: query,
+      #     search_type: 'semantic',
+      #     result_count: results.count,
+      #     model_name: Ragdoll.configuration.embedding_model
+      #   )
+      # end
       
       render json: {
         query: query,
