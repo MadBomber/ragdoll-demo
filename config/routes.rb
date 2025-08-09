@@ -18,6 +18,7 @@ Rails.application.routes.draw do
       post :bulk_delete
       post :bulk_reprocess
       get :status
+      post :upload_async
     end
   end
   
@@ -46,4 +47,10 @@ Rails.application.routes.draw do
   
   # Health check
   get "up" => "rails/health#show", as: :rails_health_check
+  
+  # Favicon
+  get "favicon.ico" => redirect("/icon.png")
+  
+  # ActionCable
+  mount ActionCable.server => "/cable"
 end

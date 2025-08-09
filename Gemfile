@@ -3,9 +3,11 @@ source "https://rubygems.org"
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.0.2"
 
-gem "ragdoll", path: "../ragdoll"
-gem "ragdoll-rails", path: "../ragdoll-rails"
-gem "ragdoll-cli", path: "../ragdoll-cli"    # Optional; does order of ragdoll gems matter?
+gem "ragdoll", github: "MadBomber/ragdoll"
+gem "ragdoll-rails", github: "MadBomber/ragdoll-rails"
+
+# Temporary workaround - ragdoll needs debug_me at runtime
+gem "debug_me"
 
 gem "propshaft"
 gem "pg"

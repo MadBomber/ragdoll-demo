@@ -1,4 +1,5 @@
 development:
+  # Use the built-in async adapter in development for live retryable channels
   adapter: async
 
 test:

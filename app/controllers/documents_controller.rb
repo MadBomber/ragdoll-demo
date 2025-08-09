@@ -1,5 +1,6 @@
 class DocumentsController < ApplicationController
   before_action :set_document, only: [:show, :edit, :update, :destroy, :preview, :reprocess, :download]
+  skip_before_action :verify_authenticity_token, only: [:upload_async]
   
   def index
     @documents = Ragdoll::Document.all
@@ -173,6 +174,58 @@ class DocumentsController < ApplicationController
     end
     
     redirect_to documents_path
+  end
+
+  def upload_async
+    Rails.logger.info "upload_async called with params: #{params.inspect}"
+    Rails.logger.info "Session ID: #{session.id}"
+    
+    if params[:ragdoll_document] && params[:ragdoll_document][:files].present?
+      session_id = session.id.to_s
+      uploaded_files = params[:ragdoll_document][:files]
+      
+      Rails.logger.info "Files received: #{uploaded_files.inspect}"
+      
+      # Ensure uploaded_files is always an array
+      uploaded_files = [uploaded_files] unless uploaded_files.is_a?(Array)
+      
+      processed_count = 0
+      uploaded_files.each_with_index do |file, index|
+        next unless file.respond_to?(:original_filename)
+        
+        Rails.logger.info "Processing file #{index + 1}: #{file.original_filename}"
+        
+        # Generate unique file ID
+        file_id = "#{session_id}_#{index}_#{Time.current.to_i}"
+        
+        # Save uploaded file temporarily
+        temp_path = Rails.root.join('tmp', 'uploads', "#{file_id}_#{file.original_filename}")
+        FileUtils.mkdir_p(File.dirname(temp_path))
+        File.binwrite(temp_path, file.read)
+        
+        Rails.logger.info "File saved to: #{temp_path}"
+        
+        # Queue background job
+        ProcessFileJob.perform_later(file_id, session_id, file.original_filename, temp_path.to_s)
+        Rails.logger.info "Job queued for file: #{file_id}"
+        
+        processed_count += 1
+      end
+      
+      Rails.logger.info "Returning success response for #{processed_count} files"
+      render json: { 
+        success: true, 
+        session_id: session_id,
+        message: "#{processed_count} file(s) queued for processing" 
+      }
+    else
+      Rails.logger.error "No files provided in upload_async"
+      render json: { success: false, error: "No files provided" }, status: :bad_request
+    end
+  rescue => e
+    Rails.logger.error "Error in upload_async: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+    render json: { success: false, error: e.message }, status: :internal_server_error
   end
   
   def status

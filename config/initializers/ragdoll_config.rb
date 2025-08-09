@@ -66,6 +66,18 @@ Ragdoll.configure do |config|
   config.enable_search_analytics = true
   config.cache_embeddings = true
 
+  # Database Configuration - use Rails database connection
+  db_config = Rails.configuration.database_configuration[Rails.env]
+  config.database = {
+    adapter: db_config['adapter'],
+    database: db_config['database'], 
+    username: db_config['username'],
+    password: db_config['password'],
+    host: db_config['host'] || 'localhost',
+    port: db_config['port'] || 5432,
+    auto_migrate: false  # Rails handles migrations
+  }
+
   # Custom Prompt Template (optional)
   # Use {{context}} and {{prompt}} placeholders
   # config.prompt_template = <<~TEMPLATE
