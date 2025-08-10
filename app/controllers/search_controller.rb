@@ -46,8 +46,9 @@ class SearchController < ApplicationController
               threshold: @filters[:threshold]
             )
             
-            # The search returns a hash with :results
+            # The search returns a hash with :results and :statistics
             @results = search_response.is_a?(Hash) ? search_response[:results] || [] : []
+            @similarity_stats = search_response.is_a?(Hash) ? search_response[:statistics] || {} : {}
             
             # Add similarity search results
             @results.each do |result|
@@ -65,6 +66,11 @@ class SearchController < ApplicationController
                 }
               end
             end
+            
+            # Store threshold info for when no similarity results are found
+            @similarity_threshold_used = @filters[:threshold]
+            @similarity_search_attempted = true
+            
           rescue => e
             Rails.logger.error "Similarity search error: #{e.message}"
             # Continue with fulltext search even if similarity search fails
@@ -113,7 +119,16 @@ class SearchController < ApplicationController
     
     respond_to do |format|
       format.html { render :index }
-      format.json { render json: { results: @detailed_results, error: @error } }
+      format.json { 
+        json_response = { results: @detailed_results, error: @error }
+        if @similarity_search_attempted && @similarity_stats
+          json_response[:similarity_statistics] = {
+            threshold_used: @similarity_threshold_used,
+            stats: @similarity_stats
+          }
+        end
+        render json: json_response
+      }
     end
   end
   
