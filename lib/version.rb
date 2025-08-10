@@ -2,5 +2,5 @@
 
 # Version constant for the Ragdoll Demo Application
 module RagdollDemo
-  VERSION = "0.1.9"
+  VERSION = "0.1.10"
 end
