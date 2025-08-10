@@ -1,4 +1,6 @@
 class SearchController < ApplicationController
+  skip_before_action :verify_authenticity_token, only: [:search]
+  
   def index
     # TODO: Implement search tracking
     @recent_searches = []
@@ -49,11 +51,12 @@ class SearchController < ApplicationController
             
             # Add similarity search results
             @results.each do |result|
-              if result[:embedding_id]
+              if result[:embedding_id] && result[:document_id]
                 embedding = Ragdoll::Embedding.find(result[:embedding_id])
+                document = Ragdoll::Document.find(result[:document_id])
                 @detailed_results << {
                   embedding: embedding,
-                  document: embedding.document,
+                  document: document,
                   similarity: result[:similarity],
                   content: result[:content],
                   usage_count: embedding.usage_count,
