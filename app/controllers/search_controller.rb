@@ -97,15 +97,33 @@ class SearchController < ApplicationController
         # Sort results by similarity score if available, otherwise by relevance
         @detailed_results.sort_by! { |r| r[:similarity] ? -r[:similarity] : 0 }
         
-        # TODO: Save search for analytics when search tracking is implemented
-        # if @results.any?
-        #   Ragdoll::Search.create!(
-        #     query: @query,
-        #     search_type: 'semantic',
-        #     result_count: @results.count,
-        #     model_name: Ragdoll.configuration.embedding_model || 'demo-embedding-model'
-        #   )
-        # end
+        # Save search for analytics
+        search_type = case
+                     when use_similarity && use_fulltext then 'hybrid'
+                     when use_similarity then 'similarity'
+                     when use_fulltext then 'fulltext'
+                     else 'unknown'
+                     end
+        
+        similarity_results = @detailed_results.select { |r| r[:search_type] == 'similarity' }
+        similarities = similarity_results.map { |r| r[:similarity] }.compact
+        
+        Ragdoll::Search.create!({
+          query: @query,
+          search_type: search_type,
+          results_count: @detailed_results.count,
+          max_similarity_score: similarities.max,
+          min_similarity_score: similarities.min,
+          avg_similarity_score: similarities.any? ? similarities.sum / similarities.size : nil,
+          execution_time_ms: (@similarity_stats && @similarity_stats[:execution_time_ms]) || 0,
+          search_filters: @filters.to_json,
+          search_options: {
+            use_similarity: use_similarity,
+            use_fulltext: use_fulltext,
+            threshold: @filters[:threshold],
+            limit: @filters[:limit]
+          }.to_json
+        })
         
         @search_performed = true
         
@@ -132,26 +150,4 @@ class SearchController < ApplicationController
     end
   end
   
-  def analytics
-    # TODO: Implement search tracking and analytics
-    @search_stats = {
-      total_searches: 0,
-      unique_queries: 0,
-      searches_today: 0,
-      searches_this_week: 0,
-      average_results: 0,
-      average_similarity: 0.82 # Default value
-    }
-    
-    @top_queries = {}
-    @search_trends = {}
-    @top_documents = {}
-    @similarity_distribution = {
-      "0.9-1.0" => 25,
-      "0.8-0.9" => 45,
-      "0.7-0.8" => 30,
-      "0.6-0.7" => 15,
-      "0.5-0.6" => 5
-    }
-  end
 end

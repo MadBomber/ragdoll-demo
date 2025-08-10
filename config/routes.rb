@@ -25,7 +25,8 @@ Rails.application.routes.draw do
   # Search Interface
   get "search" => "search#index"
   post "search" => "search#search"
-  get "search/analytics" => "search#analytics"
+  # Redirect old search analytics to main analytics page
+  get "search/analytics" => redirect("/analytics")
   
   # Configuration
   get "configuration" => "configuration#index"
