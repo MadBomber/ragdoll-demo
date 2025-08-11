@@ -3,8 +3,8 @@ source "https://rubygems.org"
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.0.2"
 
-gem "ragdoll", github: "MadBomber/ragdoll"
-gem "ragdoll-rails", github: "MadBomber/ragdoll-rails"
+gem "ragdoll", github: "MadBomber/ragdoll", branch: "develop"
+gem "ragdoll-rails", github: "MadBomber/ragdoll-rails", branch: "develop"
 
 # Temporary workaround - ragdoll needs debug_me at runtime
 gem "debug_me"
