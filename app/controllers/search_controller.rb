@@ -81,16 +81,19 @@ class SearchController < ApplicationController
         
         # Perform full-text search if enabled
         if use_fulltext
-          fulltext_results = Ragdoll::Document.search_content(@query, limit: @filters[:limit])
+          fulltext_results = Ragdoll::Document.search_content(@query, limit: @filters[:limit], threshold: @filters[:threshold])
           
           fulltext_results.each do |document|
             # Avoid duplicates if document was already found in similarity search
             unless @detailed_results.any? { |r| r[:document].id == document.id }
+              # Use the fulltext_similarity score from the enhanced search
+              fulltext_similarity = document.respond_to?(:fulltext_similarity) ? document.fulltext_similarity.to_f : 0.0
+              
               @detailed_results << {
                 document: document,
-                content: document.summary.presence || "No summary available",
+                content: document.metadata&.dig('summary') || document.title || "No summary available",
                 search_type: 'fulltext',
-                similarity: nil
+                similarity: fulltext_similarity
               }
             end
           end
