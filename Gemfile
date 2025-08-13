@@ -29,6 +29,9 @@ gem "solid_cache"
 gem "solid_queue"
 gem "solid_cable"
 
+# Redis for ActionCable adapter
+gem "redis"
+
 gem 'mission_control-jobs'
 
 gem "bootsnap", require: false

@@ -1,6 +1,7 @@
 development:
-  # Use the built-in async adapter in development for live retryable channels
-  adapter: async
+  # Use Redis adapter for reliable cross-process communication
+  adapter: redis
+  url: redis://localhost:6379/0
 
 test:
   adapter: test

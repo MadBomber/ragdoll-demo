@@ -35,6 +35,14 @@ cleanup_processes() {
     stopped=true
   fi
   
+  # Kill all SolidQueue processes (workers, dispatchers, supervisors)
+  if pgrep -f "solid-queue" > /dev/null 2>&1; then
+    echo "  - Stopping all SolidQueue processes..."
+    pkill -f "solid-queue" || true
+    sleep 2
+    stopped=true
+  fi
+  
   # Kill any Rails processes from this directory
   local current_dir=$(pwd)
   if pgrep -f "rails.*server.*${current_dir}" > /dev/null 2>&1; then

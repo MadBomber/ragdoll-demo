@@ -14,6 +14,9 @@ Rails.application.routes.draw do
     collection do
       get :health
       post :restart_workers
+      post :bulk_delete
+      post :bulk_retry
+      delete :cancel_all_pending
     end
   end
   

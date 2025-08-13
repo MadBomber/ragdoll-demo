@@ -72,10 +72,29 @@
           <!-- Pending Jobs Tab -->
           <div class="tab-pane fade show active" id="pending" role="tabpanel">
             <% if @pending_jobs.any? %>
+              <!-- Bulk Actions for Pending Jobs -->
+              <div class="mb-3 p-3 bg-light rounded">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div>
+                    <input type="checkbox" id="select-all-pending" class="form-check-input me-2">
+                    <label for="select-all-pending" class="form-check-label">Select All</label>
+                    <span id="pending-selected-count" class="ms-2 text-muted">(0 selected)</span>
+                  </div>
+                  <div>
+                    <button type="button" id="bulk-delete-pending" class="btn btn-danger btn-sm" disabled>
+                      <i class="fas fa-trash"></i> Delete Selected
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
               <div class="table-responsive">
                 <table class="table table-striped">
                   <thead>
                     <tr>
+                      <th width="40px">
+                        <input type="checkbox" id="select-all-pending-header" class="form-check-input">
+                      </th>
                       <th>Job Class</th>
                       <th>Arguments</th>
                       <th>Queue</th>
@@ -86,6 +105,9 @@
                   <tbody>
                     <% @pending_jobs.each do |job| %>
                       <tr>
+                        <td>
+                          <input type="checkbox" class="form-check-input job-checkbox-pending" value="<%= job.id %>">
+                        </td>
                         <td>
                           <strong><%= job.class_name %></strong>
                         </td>
@@ -181,10 +203,32 @@
           <!-- Failed Jobs Tab -->
           <div class="tab-pane fade" id="failed" role="tabpanel">
             <% if @failed_jobs.any? %>
+              <!-- Bulk Actions for Failed Jobs -->
+              <div class="mb-3 p-3 bg-light rounded">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div>
+                    <input type="checkbox" id="select-all-failed" class="form-check-input me-2">
+                    <label for="select-all-failed" class="form-check-label">Select All</label>
+                    <span id="failed-selected-count" class="ms-2 text-muted">(0 selected)</span>
+                  </div>
+                  <div>
+                    <button type="button" id="bulk-retry-failed" class="btn btn-warning btn-sm me-2" disabled>
+                      <i class="fas fa-redo"></i> Retry Selected
+                    </button>
+                    <button type="button" id="bulk-delete-failed" class="btn btn-danger btn-sm" disabled>
+                      <i class="fas fa-trash"></i> Delete Selected
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
               <div class="table-responsive">
                 <table class="table table-striped">
                   <thead>
                     <tr>
+                      <th width="40px">
+                        <input type="checkbox" id="select-all-failed-header" class="form-check-input">
+                      </th>
                       <th>Job Class</th>
                       <th>Error</th>
                       <th>Failed At</th>
@@ -194,6 +238,9 @@
                   <tbody>
                     <% @failed_jobs.each do |failed_job| %>
                       <tr>
+                        <td>
+                          <input type="checkbox" class="form-check-input job-checkbox-failed" value="<%= failed_job.id %>">
+                        </td>
                         <td>
                           <strong><%= failed_job.job.class_name %></strong>
                         </td>
@@ -246,6 +293,13 @@
         <div class="mt-3">
           <%= link_to "Refresh Now", jobs_path, class: "btn btn-primary" %>
           <%= link_to "Back to Dashboard", dashboard_path, class: "btn btn-outline-secondary" %>
+          <% if @stats[:pending] > 0 %>
+            <%= form_with url: cancel_all_pending_jobs_path, method: :delete, local: true, 
+                        data: { confirm: "⚠️ WARNING: This will cancel ALL #{@stats[:pending]} pending jobs! This cannot be undone. Are you absolutely sure?" }, 
+                        style: "display: inline;" do |form| %>
+              <%= form.submit "⚡ Cancel All Pending", class: "btn btn-danger ms-2" %>
+            <% end %>
+          <% end %>
         </div>
       </div>
     </div>
@@ -369,8 +423,245 @@
     });
   });
   
-  // Auto-refresh page every 30 seconds
-  setTimeout(function() {
-    window.location.reload();
-  }, 30000);
+  // Auto-refresh page every 30 seconds (disabled when jobs are selected to prevent losing selection)
+  let autoRefreshTimeout;
+  function scheduleAutoRefresh() {
+    clearTimeout(autoRefreshTimeout);
+    autoRefreshTimeout = setTimeout(function() {
+      // Don't auto-refresh if jobs are selected
+      const pendingSelected = document.querySelectorAll('.job-checkbox-pending:checked').length;
+      const failedSelected = document.querySelectorAll('.job-checkbox-failed:checked').length;
+      
+      if (pendingSelected === 0 && failedSelected === 0) {
+        window.location.reload();
+      } else {
+        // Reschedule for later
+        scheduleAutoRefresh();
+      }
+    }, 30000);
+  }
+  scheduleAutoRefresh();
+
+  // Bulk operations for pending jobs
+  document.addEventListener('DOMContentLoaded', function() {
+    // Pending jobs bulk operations
+    const selectAllPending = document.getElementById('select-all-pending');
+    const selectAllPendingHeader = document.getElementById('select-all-pending-header');
+    const pendingCheckboxes = document.querySelectorAll('.job-checkbox-pending');
+    const bulkDeletePending = document.getElementById('bulk-delete-pending');
+    const pendingSelectedCount = document.getElementById('pending-selected-count');
+
+    // Sync "Select All" checkboxes for pending jobs
+    if (selectAllPending && selectAllPendingHeader) {
+      [selectAllPending, selectAllPendingHeader].forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          const checked = this.checked;
+          pendingCheckboxes.forEach(cb => cb.checked = checked);
+          if (selectAllPending !== this) selectAllPending.checked = checked;
+          if (selectAllPendingHeader !== this) selectAllPendingHeader.checked = checked;
+          updatePendingBulkButtons();
+        });
+      });
+    }
+
+    // Individual checkbox handlers for pending jobs
+    pendingCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', updatePendingBulkButtons);
+    });
+
+    function updatePendingBulkButtons() {
+      const checkedBoxes = document.querySelectorAll('.job-checkbox-pending:checked');
+      const count = checkedBoxes.length;
+      
+      if (pendingSelectedCount) {
+        pendingSelectedCount.textContent = `(${count} selected)`;
+      }
+      
+      if (bulkDeletePending) {
+        bulkDeletePending.disabled = count === 0;
+      }
+
+      // Update "Select All" checkboxes
+      const allChecked = count === pendingCheckboxes.length && count > 0;
+      if (selectAllPending) selectAllPending.checked = allChecked;
+      if (selectAllPendingHeader) selectAllPendingHeader.checked = allChecked;
+    }
+
+    // Bulk delete pending jobs
+    if (bulkDeletePending) {
+      bulkDeletePending.addEventListener('click', function() {
+        const selectedIds = Array.from(document.querySelectorAll('.job-checkbox-pending:checked')).map(cb => cb.value);
+        
+        if (selectedIds.length === 0) return;
+        
+        if (confirm(`Are you sure you want to delete ${selectedIds.length} pending job(s)? This cannot be undone.`)) {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '<%= bulk_delete_jobs_path %>';
+          
+          // Add CSRF token
+          const csrfToken = document.querySelector('meta[name="csrf-token"]');
+          if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'authenticity_token';
+            csrfInput.value = csrfToken.content;
+            form.appendChild(csrfInput);
+          }
+          
+          // Add job type
+          const typeInput = document.createElement('input');
+          typeInput.type = 'hidden';
+          typeInput.name = 'job_type';
+          typeInput.value = 'pending';
+          form.appendChild(typeInput);
+          
+          // Add selected job IDs
+          selectedIds.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'job_ids[]';
+            input.value = id;
+            form.appendChild(input);
+          });
+          
+          document.body.appendChild(form);
+          form.submit();
+        }
+      });
+    }
+
+    // Failed jobs bulk operations
+    const selectAllFailed = document.getElementById('select-all-failed');
+    const selectAllFailedHeader = document.getElementById('select-all-failed-header');
+    const failedCheckboxes = document.querySelectorAll('.job-checkbox-failed');
+    const bulkRetryFailed = document.getElementById('bulk-retry-failed');
+    const bulkDeleteFailed = document.getElementById('bulk-delete-failed');
+    const failedSelectedCount = document.getElementById('failed-selected-count');
+
+    // Sync "Select All" checkboxes for failed jobs
+    if (selectAllFailed && selectAllFailedHeader) {
+      [selectAllFailed, selectAllFailedHeader].forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          const checked = this.checked;
+          failedCheckboxes.forEach(cb => cb.checked = checked);
+          if (selectAllFailed !== this) selectAllFailed.checked = checked;
+          if (selectAllFailedHeader !== this) selectAllFailedHeader.checked = checked;
+          updateFailedBulkButtons();
+        });
+      });
+    }
+
+    // Individual checkbox handlers for failed jobs
+    failedCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', updateFailedBulkButtons);
+    });
+
+    function updateFailedBulkButtons() {
+      const checkedBoxes = document.querySelectorAll('.job-checkbox-failed:checked');
+      const count = checkedBoxes.length;
+      
+      if (failedSelectedCount) {
+        failedSelectedCount.textContent = `(${count} selected)`;
+      }
+      
+      if (bulkRetryFailed) {
+        bulkRetryFailed.disabled = count === 0;
+      }
+      
+      if (bulkDeleteFailed) {
+        bulkDeleteFailed.disabled = count === 0;
+      }
+
+      // Update "Select All" checkboxes
+      const allChecked = count === failedCheckboxes.length && count > 0;
+      if (selectAllFailed) selectAllFailed.checked = allChecked;
+      if (selectAllFailedHeader) selectAllFailedHeader.checked = allChecked;
+    }
+
+    // Bulk retry failed jobs
+    if (bulkRetryFailed) {
+      bulkRetryFailed.addEventListener('click', function() {
+        const selectedIds = Array.from(document.querySelectorAll('.job-checkbox-failed:checked')).map(cb => cb.value);
+        
+        if (selectedIds.length === 0) return;
+        
+        if (confirm(`Are you sure you want to retry ${selectedIds.length} failed job(s)?`)) {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '<%= bulk_retry_jobs_path %>';
+          
+          // Add CSRF token
+          const csrfToken = document.querySelector('meta[name="csrf-token"]');
+          if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'authenticity_token';
+            csrfInput.value = csrfToken.content;
+            form.appendChild(csrfInput);
+          }
+          
+          // Add selected job IDs
+          selectedIds.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'job_ids[]';
+            input.value = id;
+            form.appendChild(input);
+          });
+          
+          document.body.appendChild(form);
+          form.submit();
+        }
+      });
+    }
+
+    // Bulk delete failed jobs
+    if (bulkDeleteFailed) {
+      bulkDeleteFailed.addEventListener('click', function() {
+        const selectedIds = Array.from(document.querySelectorAll('.job-checkbox-failed:checked')).map(cb => cb.value);
+        
+        if (selectedIds.length === 0) return;
+        
+        if (confirm(`Are you sure you want to delete ${selectedIds.length} failed job(s)? This cannot be undone.`)) {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '<%= bulk_delete_jobs_path %>';
+          
+          // Add CSRF token
+          const csrfToken = document.querySelector('meta[name="csrf-token"]');
+          if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'authenticity_token';
+            csrfInput.value = csrfToken.content;
+            form.appendChild(csrfInput);
+          }
+          
+          // Add job type
+          const typeInput = document.createElement('input');
+          typeInput.type = 'hidden';
+          typeInput.name = 'job_type';
+          typeInput.value = 'failed';
+          form.appendChild(typeInput);
+          
+          // Add selected job IDs
+          selectedIds.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'job_ids[]';
+            input.value = id;
+            form.appendChild(input);
+          });
+          
+          document.body.appendChild(form);
+          form.submit();
+        }
+      });
+    }
+
+    // Initialize button states
+    updatePendingBulkButtons();
+    updateFailedBulkButtons();
+  });
 </script>

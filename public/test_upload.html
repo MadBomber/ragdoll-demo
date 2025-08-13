@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Upload Progress</title>
+    <meta name="csrf-token" content="">
+    <script src="https://cdn.jsdelivr.net/gh/rails/rails@7-1-stable/actioncable/app/assets/javascripts/action_cable.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .progress { width: 100%; height: 20px; background: #f0f0f0; border-radius: 10px; overflow: hidden; }
+        .progress-bar { height: 100%; background: #4CAF50; transition: width 0.3s ease; }
+        .file-item { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .log { background: #f5f5f5; padding: 10px; border-radius: 5px; margin: 10px 0; max-height: 200px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test Upload Progress</h1>
+    
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="ragdoll_document[files][]" multiple>
+        <button type="submit">Upload</button>
+    </form>
+    
+    <div id="progressContainer" style="display: none;">
+        <h3>Progress:</h3>
+        <div id="fileList"></div>
+        <div class="progress">
+            <div id="overallProgress" class="progress-bar" style="width: 0%">0%</div>
+        </div>
+    </div>
+    
+    <div class="log">
+        <h3>Debug Log:</h3>
+        <div id="debugLog"></div>
+    </div>
+
+    <script>
+        let progressTracker = null;
+        let currentSessionId = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('debugLog');
+            logDiv.innerHTML += '<div>' + new Date().toISOString() + ': ' + message + '</div>';
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        // Test ActionCable availability
+        if (typeof ActionCable !== 'undefined') {
+            log('✅ ActionCable loaded successfully');
+            window.App = window.App || {};
+            window.App.cable = ActionCable.createConsumer('/cable');
+            log('✅ ActionCable consumer created');
+        } else {
+            log('❌ ActionCable not available');
+        }
+        
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                alert('Please select files');
+                return;
+            }
+            
+            log(`Starting upload of ${fileInput.files.length} file(s)`);
+            
+            const formData = new FormData();
+            for (let file of fileInput.files) {
+                formData.append('ragdoll_document[files][]', file);
+            }
+            
+            try {
+                const response = await fetch('/documents/upload_async', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                log(`Upload response: ${JSON.stringify(result)}`);
+                
+                if (result.success && result.session_id) {
+                    currentSessionId = result.session_id;
+                    setupProgressTracking(result.session_id);
+                    showProgressContainer(fileInput.files);
+                } else {
+                    log(`❌ Upload failed: ${result.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                log(`❌ Upload error: ${error.message}`);
+            }
+        });
+        
+        function setupProgressTracking(sessionId) {
+            log(`Setting up progress tracking for session: ${sessionId}`);
+            
+            if (!window.App || !window.App.cable) {
+                log('❌ ActionCable not available for progress tracking');
+                return;
+            }
+            
+            progressTracker = window.App.cable.subscriptions.create(
+                {
+                    channel: "FileProcessingChannel",
+                    session_id: sessionId
+                },
+                {
+                    received: function(data) {
+                        log(`📡 Progress update: ${JSON.stringify(data)}`);
+                        handleProgressUpdate(data);
+                    },
+                    connected: function() {
+                        log(`✅ Connected to FileProcessingChannel with session: ${sessionId}`);
+                    },
+                    disconnected: function() {
+                        log(`❌ Disconnected from FileProcessingChannel`);
+                    },
+                    rejected: function() {
+                        log(`❌ Connection rejected to FileProcessingChannel`);
+                    }
+                }
+            );
+        }
+        
+        function showProgressContainer(files) {
+            const container = document.getElementById('progressContainer');
+            const fileList = document.getElementById('fileList');
+            
+            container.style.display = 'block';
+            fileList.innerHTML = '';
+            
+            Array.from(files).forEach((file, index) => {
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'file-item';
+                fileDiv.id = `file-${index}`;
+                fileDiv.innerHTML = `
+                    <div><strong>${file.name}</strong></div>
+                    <div class="progress">
+                        <div class="progress-bar" id="progress-${index}" style="width: 0%">0%</div>
+                    </div>
+                    <div id="status-${index}">Queued</div>
+                `;
+                fileList.appendChild(fileDiv);
+            });
+        }
+        
+        function handleProgressUpdate(data) {
+            const { filename, status, progress, message } = data;
+            
+            // Find file by name
+            const fileList = document.getElementById('fileList');
+            const fileItems = fileList.querySelectorAll('.file-item');
+            
+            let matchedIndex = -1;
+            fileItems.forEach((item, index) => {
+                if (item.querySelector('strong').textContent === filename) {
+                    matchedIndex = index;
+                }
+            });
+            
+            if (matchedIndex !== -1) {
+                const progressBar = document.getElementById(`progress-${matchedIndex}`);
+                const statusDiv = document.getElementById(`status-${matchedIndex}`);
+                
+                if (progressBar) {
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.textContent = `${progress}%`;
+                }
+                
+                if (statusDiv) {
+                    statusDiv.textContent = `${status}: ${message}`;
+                }
+                
+                // Update overall progress
+                updateOverallProgress();
+            }
+        }
+        
+        function updateOverallProgress() {
+            const fileList = document.getElementById('fileList');
+            const progressBars = fileList.querySelectorAll('.progress-bar');
+            let totalProgress = 0;
+            
+            progressBars.forEach(bar => {
+                const width = parseFloat(bar.style.width);
+                totalProgress += isNaN(width) ? 0 : width;
+            });
+            
+            const overallProgress = progressBars.length > 0 ? totalProgress / progressBars.length : 0;
+            const overallBar = document.getElementById('overallProgress');
+            overallBar.style.width = `${overallProgress}%`;
+            overallBar.textContent = `${Math.round(overallProgress)}%`;
+        }
+    </script>
+</body>
+</html>

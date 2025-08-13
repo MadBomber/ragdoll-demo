@@ -372,7 +372,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Progress upload form handler
   const progressForm = document.getElementById('progress-upload-form');
   if (progressForm) {
+    console.log('📝 Progress form handler attached');
     progressForm.addEventListener('submit', async function(e) {
+      console.log('🚀 Progress form submitted');
       e.preventDefault();
       
       const fileInput = document.getElementById('progress_files');
@@ -402,8 +404,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Generate a temporary session ID or use existing one
         temporarySessionId = generateTemporarySessionId();
         console.log('🎯 Setting up progress tracking BEFORE upload with temp session ID:', temporarySessionId);
+        
+        // Setup the subscription synchronously - we can't wait for connection in this context
         setupProgressTracking(temporarySessionId);
-        updateProgressStatus('Connected to real-time updates. Starting upload...');
+        updateProgressStatus('Connecting to real-time updates. Starting upload...');
+        
+        // Longer delay to ensure ActionCable subscription is fully established
+        console.log('⏰ Waiting for ActionCable subscription to establish...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        console.log('✅ ActionCable delay complete, starting upload');
       } else {
         console.warn('⚠️ ActionCable not available, will use fallback mode');
         updateProgressStatus('Starting upload (real-time updates unavailable)...');
@@ -477,11 +486,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         updateProgressStatus('Upload failed: ' + error.message, 'danger');
         alert('Upload failed: ' + error.message);
+        
+        // Re-enable submit button only on error
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
       }
-      
-      // Re-enable submit button
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalBtnHtml;
     });
   }
   
@@ -528,9 +537,93 @@ document.addEventListener('DOMContentLoaded', function() {
     updateProgressStatus('Files uploaded, starting background processing...');
   }
   
-  // Setup ActionCable progress tracking
+  // Setup ActionCable progress tracking (async version that waits for connection)
+  function setupProgressTrackingAsync(sessionId) {
+    return new Promise((resolve, reject) => {
+      console.log('🚀 Setting up progress tracking for session:', sessionId);
+      
+      // Final check for ActionCable availability
+      if (!checkActionCableAvailability()) {
+        console.warn('❌ ActionCable not available, skipping progress tracking');
+        updateProgressStatus('Real-time updates not available, using basic mode', 'warning');
+        resolve();
+        return;
+      }
+      
+      console.log('📊 ActionCable environment check:');
+      console.log('  - ActionCable type:', typeof ActionCable);
+      console.log('  - window.App exists:', !!window.App);
+      console.log('  - window.App.cable exists:', !!(window.App && window.App.cable));
+      console.log('  - Session ID:', sessionId);
+      
+      try {
+        // Ensure App.cable is initialized
+        if (!window.App) {
+          window.App = {};
+        }
+        
+        if (!window.App.cable && typeof ActionCable !== 'undefined') {
+          console.log('🔧 Initializing App.cable...');
+          window.App.cable = ActionCable.createConsumer('/cable');
+        }
+        
+        const consumer = window.App.cable;
+        console.log('📡 Using consumer:', consumer);
+        
+        if (!consumer) {
+          throw new Error('No ActionCable consumer available');
+        }
+        
+        progressTracker = consumer.subscriptions.create(
+          {
+            channel: "FileProcessingChannel", 
+            session_id: sessionId
+          },
+          {
+            received: function(data) {
+              console.log('📡 ActionCable data received:', data);
+              handleProgressUpdate(data);
+            },
+            connected: function() {
+              console.log('✅ Connected to FileProcessingChannel with session:', sessionId);
+              updateProgressStatus('Connected to real-time updates. Ready for upload...');
+              resolve(); // Connection established, ready to proceed
+            },
+            disconnected: function() {
+              console.log('❌ Disconnected from FileProcessingChannel');
+              updateProgressStatus('Lost connection to real-time updates', 'warning');
+            },
+            rejected: function() {
+              console.log('❌ Connection rejected to FileProcessingChannel');
+              updateProgressStatus('Connection rejected - channel may not exist', 'danger');
+              reject(new Error('ActionCable connection rejected'));
+            }
+          }
+        );
+        console.log('📡 Subscription created:', progressTracker);
+        
+        // Timeout in case connection never establishes
+        setTimeout(() => {
+          console.log('⏰ Connection timeout, proceeding anyway');
+          resolve();
+        }, 3000);
+        
+      } catch (error) {
+        console.error('💥 Failed to setup progress tracking:', error);
+        updateProgressStatus('Failed to setup real-time updates: ' + error.message, 'danger');
+        reject(error);
+      }
+    });
+  }
+  
+  // Legacy sync version for fallback
   function setupProgressTracking(sessionId) {
-    console.log('🚀 Setting up progress tracking for session:', sessionId);
+    console.log('🚀 Setting up progress tracking for session (sync):', sessionId);
+    console.log('📊 Current ActionCable state:', {
+      ActionCable: typeof ActionCable,
+      windowApp: !!window.App,
+      appCable: !!(window.App && window.App.cable)
+    });
     
     // Final check for ActionCable availability
     if (!checkActionCableAvailability()) {
@@ -538,12 +631,6 @@ document.addEventListener('DOMContentLoaded', function() {
       updateProgressStatus('Real-time updates not available, using basic mode', 'warning');
       return;
     }
-    
-    console.log('📊 ActionCable environment check:');
-    console.log('  - ActionCable type:', typeof ActionCable);
-    console.log('  - window.App exists:', !!window.App);
-    console.log('  - window.App.cable exists:', !!(window.App && window.App.cable));
-    console.log('  - Session ID:', sessionId);
     
     try {
       // Ensure App.cable is initialized
@@ -571,11 +658,21 @@ document.addEventListener('DOMContentLoaded', function() {
         {
           received: function(data) {
             console.log('📡 ActionCable data received:', data);
+            
+            if (data.type === 'ping') {
+              console.log('🏓 Ping response received:', data.message);
+              return;
+            }
+            
             handleProgressUpdate(data);
           },
           connected: function() {
             console.log('✅ Connected to FileProcessingChannel with session:', sessionId);
             updateProgressStatus('Connected to real-time updates. Processing will begin shortly...');
+            
+            // Test if the connection is really working by sending a ping
+            console.log('🏓 Testing ActionCable connection...');
+            this.perform('test_connection');
           },
           disconnected: function() {
             console.log('❌ Disconnected from FileProcessingChannel');

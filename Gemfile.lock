@@ -10,7 +10,7 @@ GIT
 
 GIT
   remote: https://github.com/MadBomber/ragdoll.git
-  revision: 552e019703e5992f48f0d59b7eac81cc10f8c60c
+  revision: c8f19f1a06cbfa9677dbe22fef481de095b4e63b
   branch: develop
   specs:
     ragdoll (0.1.10)
@@ -107,7 +107,7 @@ GEM
       uri (>= 0.13.1)
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
-    afm (0.2.2)
+    afm (1.0.0)
     ast (2.4.3)
     async (2.27.2)
       console (~> 1.29)
@@ -247,7 +247,7 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    jbuilder (2.14.0)
+    jbuilder (2.14.1)
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
     json (2.13.2)
@@ -281,7 +281,7 @@ GEM
     mime-types (3.7.0)
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
-    mime-types-data (3.2025.0805)
+    mime-types-data (3.2025.0812)
     mini_mime (1.1.5)
     minitest (5.25.5)
     mission_control-jobs (1.1.0)
@@ -329,9 +329,9 @@ GEM
     parser (3.3.9.0)
       ast (~> 2.4.1)
       racc
-    pdf-reader (2.14.1)
+    pdf-reader (2.15.0)
       Ascii85 (>= 1.0, < 3.0, != 2.0.0)
-      afm (~> 0.2.1)
+      afm (>= 0.2.1, < 2)
       hashery (~> 2.0)
       ruby-rc4
       ttfunk
@@ -400,9 +400,11 @@ GEM
     rdoc (6.14.2)
       erb
       psych (>= 4.0.0)
+    redis (5.4.1)
+      redis-client (>= 0.22.0)
     redis-client (0.25.2)
       connection_pool
-    regexp_parser (2.11.1)
+    regexp_parser (2.11.2)
     reline (0.6.2)
       io-console (~> 0.5)
     rmagick (6.1.2)
@@ -426,7 +428,7 @@ GEM
       lint_roller (~> 1.1)
       rubocop (>= 1.75.0, < 2.0)
       rubocop-ast (>= 1.38.0, < 2.0)
-    rubocop-rails (2.33.0)
+    rubocop-rails (2.33.3)
       activesupport (>= 4.2.0)
       lint_roller (~> 1.1)
       rack (>= 1.1)
@@ -447,7 +449,7 @@ GEM
       faraday-multipart (>= 1)
     ruby-progressbar (1.13.0)
     ruby-rc4 (0.1.5)
-    ruby_llm (1.6.0)
+    ruby_llm (1.6.1)
       base64
       event_stream_parser (~> 1)
       faraday (>= 1.10.0)
@@ -550,6 +552,7 @@ DEPENDENCIES
   ragdoll!
   ragdoll-rails!
   rails (~> 8.0.2)
+  redis
   rubocop-rails-omakase
   solid_cable
   solid_cache

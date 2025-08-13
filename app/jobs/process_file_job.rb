@@ -15,7 +15,13 @@ class ProcessFileJob < ApplicationJob
       }
       
       puts "📡 Broadcasting start: #{broadcast_data}"
-      ActionCable.server.broadcast("file_processing_#{session_id}", broadcast_data)
+      begin
+        ActionCable.server.broadcast("file_processing_#{session_id}", broadcast_data)
+        puts "✅ ActionCable broadcast sent successfully"
+      rescue => e
+        puts "❌ ActionCable broadcast failed: #{e.message}"
+        puts e.backtrace.first(3)
+      end
 
       # Simulate progress updates during processing
       broadcast_progress(session_id, file_id, filename, 25, 'Reading file...')
@@ -43,7 +49,12 @@ class ProcessFileJob < ApplicationJob
         }
         
         puts "🎉 Broadcasting completion: #{completion_data}"
-        ActionCable.server.broadcast("file_processing_#{session_id}", completion_data)
+        begin
+          ActionCable.server.broadcast("file_processing_#{session_id}", completion_data)
+          puts "✅ Completion broadcast sent successfully"
+        rescue => e
+          puts "❌ Completion broadcast failed: #{e.message}"
+        end
       else
         raise "Processing failed: #{result[:error] || 'Unknown error'}"
       end
@@ -65,7 +76,12 @@ class ProcessFileJob < ApplicationJob
       }
       
       puts "📡 Broadcasting error: #{error_data}"
-      ActionCable.server.broadcast("file_processing_#{session_id}", error_data)
+      begin
+        ActionCable.server.broadcast("file_processing_#{session_id}", error_data)
+        puts "✅ Error broadcast sent successfully"
+      rescue => e
+        puts "❌ Error broadcast failed: #{e.message}"
+      end
     end
   end
 
@@ -81,7 +97,12 @@ class ProcessFileJob < ApplicationJob
     }
     
     puts "📡 Broadcasting progress: #{broadcast_data}"
-    ActionCable.server.broadcast("file_processing_#{session_id}", broadcast_data)
+    begin
+      ActionCable.server.broadcast("file_processing_#{session_id}", broadcast_data)
+      puts "✅ Progress broadcast sent successfully"
+    rescue => e
+      puts "❌ Progress broadcast failed: #{e.message}"
+    end
     
     # Small delay to simulate processing time
     sleep(0.5)
