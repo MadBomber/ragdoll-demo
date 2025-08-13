@@ -1,7 +1,7 @@
 class WorkerMonitorJob < ApplicationJob
   queue_as :default
   
-  # Run this job every 2 minutes to monitor worker health
+  # Run this job to monitor worker health - designed to be triggered manually or by cron
   def perform
     Rails.logger.info "🔍 WorkerMonitorJob: Checking worker health"
     
@@ -21,18 +21,13 @@ class WorkerMonitorJob < ApplicationJob
       # Restart workers
       WorkerHealthService.restart_workers!
       
-      # Schedule another check in 1 minute to verify restart worked
-      WorkerMonitorJob.set(wait: 1.minute).perform_later
+      Rails.logger.info "🔄 Worker restart completed"
     else
       Rails.logger.info "✅ Workers are healthy"
-      # Schedule next regular check
-      WorkerMonitorJob.set(wait: 2.minutes).perform_later
     end
   rescue => e
     Rails.logger.error "💥 WorkerMonitorJob failed: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
-    
-    # Schedule retry in 1 minute
-    WorkerMonitorJob.set(wait: 1.minute).perform_later
+    raise e # Re-raise to mark job as failed instead of scheduling retry
   end
 end

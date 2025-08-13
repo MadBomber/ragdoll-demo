@@ -16,6 +16,7 @@ class SearchController < ApplicationController
   end
   
   def search
+    Rails.logger.debug "🔍 Search called with params: #{params.inspect}"
     @query = params[:query]
     @filters = {
       document_type: params[:document_type],
@@ -23,6 +24,7 @@ class SearchController < ApplicationController
       limit: params[:limit]&.to_i || 10,
       threshold: params[:threshold]&.to_f || (Rails.env.development? ? 0.001 : 0.7)  # Much lower threshold for development
     }
+    Rails.logger.debug "🔍 Query: #{@query.inspect}, Filters: #{@filters.inspect}"
     
     # Initialize data needed for the view sidebar
     # TODO: Implement search tracking
@@ -108,26 +110,16 @@ class SearchController < ApplicationController
         similarity_results = @detailed_results.select { |r| r[:search_type] == 'similarity' }
         similarities = similarity_results.map { |r| r[:similarity] }.compact
         
-        Ragdoll::Search.create!({
-          query: @query,
-          search_type: search_type,
-          results_count: @detailed_results.count,
-          max_similarity_score: similarities.max,
-          min_similarity_score: similarities.min,
-          avg_similarity_score: similarities.any? ? similarities.sum / similarities.size : nil,
-          execution_time_ms: (@similarity_stats && @similarity_stats[:execution_time_ms]) || 0,
-          search_filters: @filters.to_json,
-          search_options: {
-            use_similarity: use_similarity,
-            use_fulltext: use_fulltext,
-            threshold: @filters[:threshold],
-            limit: @filters[:limit]
-          }.to_json
-        })
+        # TODO: Save search for analytics - requires query_embedding generation
+        # Currently disabled due to validation requirement for query_embedding
+        Rails.logger.debug "🔍 Search analytics saving disabled (requires query embedding generation)"
         
+        Rails.logger.debug "🔍 Search completed successfully. Results count: #{@detailed_results.count}"
         @search_performed = true
         
       rescue => e
+        Rails.logger.error "🔍 Search error: #{e.message}"
+        Rails.logger.error e.backtrace.join("\n")
         @error = e.message
         @search_performed = false
       end

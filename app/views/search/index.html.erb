@@ -14,7 +14,7 @@
         <h5><i class="fas fa-search"></i> Search Query</h5>
       </div>
       <div class="card-body">
-        <%= form_with url: search_path, method: :post, local: true, class: "search-form" do |form| %>
+        <%= form_with url: search_path, method: :post, local: true, class: "search-form", data: { turbo: false } do |form| %>
           <div class="input-group mb-3">
             <%= form.text_field :query, placeholder: "Enter your search query...", value: @query, class: "form-control form-control-lg", required: true %>
             <div class="input-group-append">
