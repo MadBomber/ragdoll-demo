@@ -6,6 +6,17 @@ Rails.application.routes.draw do
   get "dashboard" => "dashboard#index"
   get "analytics" => "dashboard#analytics"
   
+  # Job Queue Dashboard
+  resources :jobs, only: [:index, :show, :destroy] do
+    member do
+      post :retry
+    end
+    collection do
+      get :health
+      post :restart_workers
+    end
+  end
+  
   # Document Management
   resources :documents do
     member do

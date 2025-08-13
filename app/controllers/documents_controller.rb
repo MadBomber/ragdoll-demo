@@ -179,9 +179,19 @@ class DocumentsController < ApplicationController
   def upload_async
     Rails.logger.info "upload_async called with params: #{params.inspect}"
     Rails.logger.info "Session ID: #{session.id}"
+    Rails.logger.info "Request ID: #{request.request_id}"
+    Rails.logger.info "Temp Session ID: #{params[:temp_session_id]}"
     
     if params[:ragdoll_document] && params[:ragdoll_document][:files].present?
-      session_id = session.id.to_s
+      # Priority: temp_session_id from frontend, then session ID, then request ID as fallback
+      session_id = if params[:temp_session_id].present?
+                     params[:temp_session_id]
+                   elsif session.id.present?
+                     session.id.to_s
+                   else
+                     request.request_id
+                   end
+      Rails.logger.info "Using session_id: #{session_id} (source: #{params[:temp_session_id].present? ? 'temp_session_id' : session.id.present? ? 'session' : 'request'})"
       uploaded_files = params[:ragdoll_document][:files]
       
       Rails.logger.info "Files received: #{uploaded_files.inspect}"

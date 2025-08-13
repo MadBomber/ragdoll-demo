@@ -11,9 +11,8 @@
 
     <%= yield :head %>
 
-    <link rel="icon" href="/icon.png" type="image/png">
-    <link rel="icon" href="/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/icon.png">
+    <%= favicon_link_tag "ragdoll.png", type: "image/png" %>
+    <%= favicon_link_tag "ragdoll.png", rel: "apple-touch-icon" %>
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     
@@ -58,50 +57,10 @@
   </head>
 
   <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-      <div class="container">
-        <%= link_to "Ragdoll Engine Demo", root_path, class: "navbar-brand" %>
-        
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav me-auto">
-            <li class="nav-item">
-              <%= link_to "Dashboard", dashboard_path, class: "nav-link #{'active' if current_page?(dashboard_path)}" %>
-            </li>
-            <li class="nav-item">
-              <%= link_to "Documents", documents_path, class: "nav-link #{'active' if current_page?(documents_path)}" %>
-            </li>
-            <li class="nav-item">
-              <%= link_to "Search", search_path, class: "nav-link #{'active' if current_page?(search_path)}" %>
-            </li>
-            <li class="nav-item">
-              <%= link_to "Analytics", analytics_path, class: "nav-link #{'active' if current_page?(analytics_path)}" %>
-            </li>
-            <li class="nav-item">
-              <%= link_to "Configuration", configuration_path, class: "nav-link #{'active' if current_page?(configuration_path)}" %>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
+    <%= render NavbarComponent.new %>
 
     <div class="container mt-4">
-      <% if notice %>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-          <%= notice %>
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      <% end %>
-
-      <% if alert %>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-          <%= alert %>
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      <% end %>
+      <%= render FlashMessagesComponent.new(flash: flash) %>
 
       <%= yield %>
     </div>
@@ -188,13 +147,20 @@
       }
       
       // Ensure App.cable is available regardless of loading method
+      if (!window.App) {
+        window.App = {};
+      }
+      
       if (typeof ActionCable !== 'undefined' && !window.App.cable) {
         try {
           window.App.cable = ActionCable.createConsumer('/cable');
           console.log('✅ App.cable initialized from CDN ActionCable');
+          console.log('✅ App.cable consumer ready:', window.App.cable);
         } catch (e) {
           console.error('❌ Failed to initialize App.cable:', e);
         }
+      } else if (window.App.cable) {
+        console.log('✅ App.cable already initialized');
       }
       
       console.log('🚀 JavaScript dependencies check complete');

@@ -1,2 +1,103 @@
-#!/usr/bin/env ruby
-exec "./bin/rails", "server", *ARGV
+#!/usr/bin/env bash
+
+set -e
+
+APP_NAME="ragdoll-demo"
+PIDFILE=".foreman.pid"
+
+# Function to cleanup processes
+cleanup_processes() {
+  echo "🧹 Cleaning up previous processes..."
+  
+  # Kill any existing foreman processes for this app
+  if pgrep -f "foreman.*Procfile.dev" > /dev/null 2>&1; then
+    echo "  - Stopping existing foreman processes..."
+    pkill -f "foreman.*Procfile.dev" || true
+    sleep 2
+  fi
+  
+  # Kill Rails server processes on port 3000
+  if lsof -ti:3000 > /dev/null 2>&1; then
+    echo "  - Stopping Rails server on port 3000..."
+    lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+    sleep 1
+  fi
+  
+  # Kill SolidQueue workers for this app
+  if pgrep -f "jobs.*start" > /dev/null 2>&1; then
+    echo "  - Stopping SolidQueue workers..."
+    pkill -f "jobs.*start" || true
+    sleep 1
+  fi
+  
+  # Kill any Rails processes from this directory
+  local current_dir=$(pwd)
+  if pgrep -f "rails.*server.*${current_dir}" > /dev/null 2>&1; then
+    echo "  - Stopping Rails processes for ${current_dir}..."
+    pkill -f "rails.*server.*${current_dir}" || true
+    sleep 1
+  fi
+  
+  # Remove PID file if it exists
+  if [[ -f "$PIDFILE" ]]; then
+    echo "  - Removing PID file..."
+    rm -f "$PIDFILE"
+  fi
+  
+  echo "  ✅ Cleanup complete"
+}
+
+# Function to handle script exit
+cleanup_on_exit() {
+  echo ""
+  echo "🛑 Shutting down ${APP_NAME}..."
+  cleanup_processes
+  echo "👋 Goodbye!"
+}
+
+# Set up signal handlers
+trap cleanup_on_exit INT TERM EXIT
+
+echo "🚀 Starting ${APP_NAME} development environment..."
+
+# Cleanup any existing processes first
+cleanup_processes
+
+# Check and update gem dependencies
+echo "💎 Checking gem dependencies..."
+if [[ ! -f "Gemfile.lock" ]] || [[ "Gemfile" -nt "Gemfile.lock" ]]; then
+  echo "  - Gemfile updated, running bundle install..."
+  bundle install
+elif ! bundle check > /dev/null 2>&1; then
+  echo "  - Missing gems detected, running bundle install..."
+  bundle install
+else
+  echo "  - All gems up to date"
+fi
+
+# Check if database exists and is up to date
+echo "🗄️  Checking database..."
+if ! bundle exec rails db:version > /dev/null 2>&1; then
+  echo "  - Database not found. Setting up..."
+  bundle exec rails db:setup
+else
+  echo "  - Database OK"
+fi
+
+# Check for pending migrations
+echo "🔄 Checking for pending migrations..."
+if bundle exec rails db:migrate:status | grep -q "down"; then
+  echo "  - Running pending migrations..."
+  bundle exec rails db:migrate
+else
+  echo "  - No pending migrations"
+fi
+
+echo "⚡ Starting all processes..."
+echo "  - Web server will be available at: http://localhost:3000"
+echo "  - Job dashboard will be available at: http://localhost:3000/mission_control/jobs"
+echo "  - Press Ctrl+C to stop all processes"
+echo ""
+
+# Start all processes with foreman
+exec bundle exec foreman start -f Procfile.dev "$@"

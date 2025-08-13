@@ -1,24 +1,170 @@
-# README
+# Ragdoll Demo
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+A demonstration Rails application showcasing the Ragdoll document processing and search engine.
 
-Things you may want to cover:
+## Quick Start
 
-* Ruby version
+The easiest way to run the application with all processes:
 
-* System dependencies
+```bash
+./bin/dev
+```
 
-* Configuration
+This will:
+- **Cleanup** any existing processes automatically
+- **Update gems** automatically if Gemfile has changed or gems are missing
+- Check and setup the database if needed
+- Run pending migrations
+- Start the Rails server on port 3000
+- Start the background job worker
 
-* Database creation
+**Stop the application:**
+```bash
+./bin/stop
+```
 
-* Database initialization
+**Check status:**
+```bash
+./bin/status
+```
 
-* How to run the test suite
+## Manual Process Management
 
-* Services (job queues, cache servers, search engines, etc.)
+### Development (Foreman)
 
-* Deployment instructions
+Start all processes with foreman:
+```bash
+bundle exec foreman start -f Procfile.dev
+```
 
-* ...
+Or start specific processes:
+```bash
+# Web server only
+bundle exec foreman start web -f Procfile.dev
+
+# Background worker only  
+bundle exec foreman start worker -f Procfile.dev
+```
+
+### Individual Processes
+
+Start processes individually:
+```bash
+# Rails server
+bundle exec rails server -p 3000
+
+# Background jobs (SolidQueue)
+bundle exec jobs
+```
+
+## Process Configuration
+
+### Files
+
+- **`Procfile`** - Production process definitions
+- **`Procfile.dev`** - Development process definitions  
+- **`.foreman`** - Foreman configuration (port, timeout, formation)
+- **`.env.example`** - Environment variables template
+
+### Available Processes
+
+- **web**: Rails application server (Puma)
+- **worker**: Background job processor (SolidQueue)
+
+## Environment Setup
+
+1. Copy environment variables:
+```bash
+cp .env.example .env
+```
+
+2. Edit `.env` with your configuration
+
+3. Install dependencies:
+```bash
+bundle install
+```
+
+4. Setup database:
+```bash
+bundle exec rails db:setup
+```
+
+## Requirements
+
+- Ruby 3.4.4+
+- Rails 8.0.2+
+- PostgreSQL
+- Node.js (for asset compilation)
+
+## Architecture
+
+- **Frontend**: Rails views with ViewComponent, Turbo, Stimulus
+- **Background Jobs**: SolidQueue with PostgreSQL adapter
+- **Database**: PostgreSQL with vector extensions (pgvector)
+- **Search**: Elasticsearch/OpenSearch integration via Ragdoll engine
+- **Process Management**: Foreman for development, systemd/Docker for production
+
+## Development
+
+The application uses:
+- **ViewComponent** for reusable UI components
+- **Hotwire (Turbo + Stimulus)** for interactive features
+- **SolidQueue** for reliable background job processing
+- **Ragdoll Engine** for document processing and vector search
+
+## Just (Task Runner) Integration
+
+From the parent `meta` directory, you can use Just recipes:
+
+```bash
+# Start the demo
+just start  # or just demo-start
+
+# Stop the demo  
+just stop   # or just demo-stop
+
+# Restart the demo
+just restart  # or just demo-restart
+
+# Check status
+just status  # or just demo-status
+
+# View logs
+just logs  # or just demo-logs
+
+# Open in browser
+just demo-open
+
+# Open job dashboard
+just demo-jobs
+
+# Database operations
+just demo-migrate
+just demo-db-setup
+just demo-db-reset
+
+# Gem management
+just demo-bundle       # Update gems
+just demo-bundle-clean # Clean and update gems
+```
+
+## Monitoring
+
+- **Process Status**: `./bin/status` or `just status`
+- **Background Jobs**: Visit `/mission_control/jobs` or `just demo-jobs`
+- **Application Logs**: `tail -f log/development.log` or `just logs`
+- **Real-time Status**: All processes are monitored and can be managed independently
+
+## Process Management Features
+
+### Automatic Cleanup
+- **Smart Startup**: `./bin/dev` automatically kills any existing processes before starting
+- **Gem Management**: Automatically runs `bundle install` when Gemfile changes or gems are missing
+- **Port Conflict Resolution**: Automatically frees port 3000 if occupied
+- **Graceful Shutdown**: Proper signal handling for clean shutdowns
+
+### Process Monitoring
+- **Real-time Status**: Check running processes with `./bin/status`
+- **Process Discovery**: Automatically detects Rails servers, workers, and foreman processes
+- **PID Tracking**: Shows process IDs for debugging and manual management

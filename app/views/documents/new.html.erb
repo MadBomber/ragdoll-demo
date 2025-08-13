@@ -316,23 +316,57 @@ document.addEventListener('DOMContentLoaded', function() {
   let actionCableAvailable = false;
   let progressTracker = null;
   
-  try {
-    actionCableAvailable = typeof ActionCable !== 'undefined';
-    console.log('ActionCable availability:', actionCableAvailable);
-  } catch (error) {
-    console.log('ActionCable check failed:', error);
+  // Wait a bit for CDN resources to load, then check ActionCable availability
+  function checkActionCableAvailability() {
+    try {
+      actionCableAvailable = typeof ActionCable !== 'undefined';
+      console.log('🔍 ActionCable availability check:', actionCableAvailable);
+      console.log('🔍 window.App exists:', !!window.App);
+      console.log('🔍 window.App.cable exists:', !!(window.App && window.App.cable));
+      return actionCableAvailable;
+    } catch (error) {
+      console.log('❌ ActionCable check failed:', error);
+      return false;
+    }
   }
   
-  // Update status indicator
-  const statusEl = document.getElementById('websocket-status');
-  const progressSection = document.getElementById('progress-upload-section');
+  // Initial check
+  actionCableAvailable = checkActionCableAvailability();
   
-  if (actionCableAvailable && statusEl) {
-    statusEl.className = 'alert alert-success mb-3';
-    statusEl.innerHTML = '<i class="fas fa-check-circle me-2"></i>Real-time progress tracking enabled';
-  } else if (statusEl) {
-    statusEl.className = 'alert alert-warning mb-3';
-    statusEl.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Limited functionality - progress tracking unavailable';
+  // Update status indicator with re-check
+  function updateStatusIndicator() {
+    const statusEl = document.getElementById('websocket-status');
+    actionCableAvailable = checkActionCableAvailability();
+    
+    if (actionCableAvailable && statusEl) {
+      statusEl.className = 'alert alert-success mb-3';
+      statusEl.innerHTML = '<i class="fas fa-check-circle me-2"></i>Real-time progress tracking enabled';
+    } else if (statusEl) {
+      statusEl.className = 'alert alert-warning mb-3';
+      statusEl.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Limited functionality - progress tracking unavailable';
+    }
+  }
+  
+  // Initial update
+  updateStatusIndicator();
+  
+  // Re-check after a delay to account for CDN loading
+  setTimeout(function() {
+    updateStatusIndicator();
+    console.log('🔄 Re-checked ActionCable availability after delay');
+  }, 2000);
+  
+  // Generate a temporary session ID for ActionCable subscription
+  function generateTemporarySessionId() {
+    // Use crypto.randomUUID if available, otherwise fallback to timestamp + random
+    if (crypto && crypto.randomUUID) {
+      return crypto.randomUUID();
+    } else {
+      // Fallback: timestamp + random string
+      const timestamp = Date.now().toString(36);
+      const randomStr = Math.random().toString(36).substr(2, 9);
+      return `temp_${timestamp}_${randomStr}`;
+    }
   }
   
   // Progress upload form handler
@@ -362,10 +396,30 @@ document.addEventListener('DOMContentLoaded', function() {
         setupProgressDisplay(Array.from(fileInput.files));
       }
       
+      // Setup ActionCable connection BEFORE starting upload to ensure it's ready
+      let temporarySessionId = null;
+      if (checkActionCableAvailability()) {
+        // Generate a temporary session ID or use existing one
+        temporarySessionId = generateTemporarySessionId();
+        console.log('🎯 Setting up progress tracking BEFORE upload with temp session ID:', temporarySessionId);
+        setupProgressTracking(temporarySessionId);
+        updateProgressStatus('Connected to real-time updates. Starting upload...');
+      } else {
+        console.warn('⚠️ ActionCable not available, will use fallback mode');
+        updateProgressStatus('Starting upload (real-time updates unavailable)...');
+      }
+      
       try {
         const formData = new FormData(progressForm);
+        
+        // Add the temporary session ID to the form data so backend uses it
+        if (temporarySessionId) {
+          formData.append('temp_session_id', temporarySessionId);
+        }
+        
         const csrfToken = document.querySelector('meta[name="csrf-token"]');
         
+        console.log('🚀 Sending upload request...');
         const response = await fetch(progressForm.action, {
           method: 'POST',
           body: formData,
@@ -374,23 +428,38 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         });
         
+        console.log('📨 Upload response received:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+        
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         const result = await response.json();
+        console.log('📊 Upload result parsed:', result);
+        console.log('🎯 Processing upload success...');
         
         if (result.success) {
-          // Setup ActionCable progress tracking if available
-          if (actionCableAvailable && result.session_id) {
+          console.log('✅ Upload successful, processing has started');
+          console.log('📡 Server session ID:', result.session_id);
+          console.log('📡 Temp session ID used:', temporarySessionId);
+          
+          // If we have a different session ID from server, update our subscription
+          if (result.session_id && result.session_id !== temporarySessionId) {
+            console.log('🔄 Server provided different session ID, updating subscription...');
+            // Unsubscribe from old channel
+            if (progressTracker) {
+              progressTracker.unsubscribe();
+            }
+            // Subscribe to correct channel
             setupProgressTracking(result.session_id);
-          } else {
-            // Show success message without real-time tracking
-            updateProgressStatus('Upload successful! Files are being processed in background.');
-            setTimeout(() => {
-              window.location.href = '/documents';
-            }, 3000);
           }
+          
+          updateProgressStatus('Upload successful! Background processing started with real-time tracking...');
           
           // Clear form
           fileInput.value = '';
@@ -400,7 +469,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
       } catch (error) {
-        console.error('Upload error:', error);
+        console.error('💥 Upload error:', error);
+        console.error('💥 Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
         updateProgressStatus('Upload failed: ' + error.message, 'danger');
         alert('Upload failed: ' + error.message);
       }
@@ -444,7 +518,10 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Store mapping for easy lookup
       fileMapping.set(file.name, index);
+      console.log(`📝 Mapped file "${file.name}" to index ${index}`);
     });
+    
+    console.log('🗺️ Final file mapping:', Array.from(fileMapping.entries()));
     
     // Initialize progress
     updateOverallProgress(0);
@@ -453,15 +530,39 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Setup ActionCable progress tracking
   function setupProgressTracking(sessionId) {
-    if (!actionCableAvailable) {
-      console.warn('ActionCable not available, skipping progress tracking');
+    console.log('🚀 Setting up progress tracking for session:', sessionId);
+    
+    // Final check for ActionCable availability
+    if (!checkActionCableAvailability()) {
+      console.warn('❌ ActionCable not available, skipping progress tracking');
+      updateProgressStatus('Real-time updates not available, using basic mode', 'warning');
       return;
     }
     
-    console.log('Setting up progress tracking for session:', sessionId);
+    console.log('📊 ActionCable environment check:');
+    console.log('  - ActionCable type:', typeof ActionCable);
+    console.log('  - window.App exists:', !!window.App);
+    console.log('  - window.App.cable exists:', !!(window.App && window.App.cable));
+    console.log('  - Session ID:', sessionId);
     
     try {
-      const consumer = ActionCable.createConsumer('/cable');
+      // Ensure App.cable is initialized
+      if (!window.App) {
+        window.App = {};
+      }
+      
+      if (!window.App.cable && typeof ActionCable !== 'undefined') {
+        console.log('🔧 Initializing App.cable...');
+        window.App.cable = ActionCable.createConsumer('/cable');
+      }
+      
+      const consumer = window.App.cable;
+      console.log('📡 Using consumer:', consumer);
+      
+      if (!consumer) {
+        throw new Error('No ActionCable consumer available');
+      }
+      
       progressTracker = consumer.subscriptions.create(
         {
           channel: "FileProcessingChannel", 
@@ -469,7 +570,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         {
           received: function(data) {
-            console.log('ActionCable data received:', data);
+            console.log('📡 ActionCable data received:', data);
             handleProgressUpdate(data);
           },
           connected: function() {
@@ -482,27 +583,42 @@ document.addEventListener('DOMContentLoaded', function() {
           },
           rejected: function() {
             console.log('❌ Connection rejected to FileProcessingChannel');
-            updateProgressStatus('Connection rejected', 'danger');
+            updateProgressStatus('Connection rejected - channel may not exist', 'danger');
           }
         }
       );
+      console.log('📡 Subscription created:', progressTracker);
     } catch (error) {
-      console.error('Failed to setup progress tracking:', error);
-      updateProgressStatus('Failed to setup real-time updates', 'danger');
+      console.error('💥 Failed to setup progress tracking:', error);
+      updateProgressStatus('Failed to setup real-time updates: ' + error.message, 'danger');
     }
   }
   
   // Handle progress updates from ActionCable
   function handleProgressUpdate(data) {
-    console.log('Progress update received:', data);
+    console.log('📡 Progress update received:', data);
+    console.log('📊 Data breakdown:', {
+      file_id: data.file_id,
+      filename: data.filename,
+      status: data.status,
+      progress: data.progress,
+      message: data.message
+    });
+    
     const { file_id, filename, status, progress, message } = data;
     
     // Find corresponding file by name using our mapping
+    console.log('🔍 Looking for file in mapping:', filename);
+    console.log('🗺️ Current file mapping:', Array.from(fileMapping.entries()));
+    
     const fileIndex = fileMapping.get(filename);
     if (fileIndex === undefined) {
-      console.warn('File not found in mapping:', filename);
+      console.warn('❌ File not found in mapping:', filename);
+      console.log('📋 Available files in mapping:', Array.from(fileMapping.keys()));
       return;
     }
+    
+    console.log('✅ Found file at index:', fileIndex);
     
     const fileItem = document.getElementById(`file-${fileIndex}`);
     const statusSpan = document.getElementById(`file-status-${fileIndex}`);

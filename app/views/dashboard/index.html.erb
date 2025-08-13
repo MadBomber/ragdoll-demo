@@ -1,93 +1,74 @@
 <% content_for :title, "Dashboard - Ragdoll Engine Demo" %>
 
-<div class="row">
-  <div class="col-12">
-    <h1><i class="fas fa-tachometer-alt"></i> Ragdoll Engine Dashboard</h1>
-    <p class="text-muted">Overview of your document processing and search system</p>
-  </div>
-</div>
+<%= render PageHeaderComponent.new(
+  title: "Ragdoll Engine Dashboard",
+  icon: "fas fa-tachometer-alt", 
+  subtitle: "Overview of your document processing and search system"
+) %>
 
 <div class="row mb-4">
   <div class="col-md-3">
-    <div class="card border-primary">
-      <div class="card-body text-center">
-        <h5 class="card-title text-primary">
-          <i class="fas fa-file-alt"></i> Documents
-        </h5>
-        <h2 class="text-primary"><%= @stats[:total_documents] %></h2>
-        <p class="text-muted mb-0">Total documents</p>
-      </div>
-    </div>
+    <%= render StatsCardComponent.new(
+      title: "Documents",
+      value: @stats[:total_documents],
+      icon: "fas fa-file-alt",
+      color: "primary",
+      description: "Total documents"
+    ) %>
   </div>
   <div class="col-md-3">
-    <div class="card border-success">
-      <div class="card-body text-center">
-        <h5 class="card-title text-success">
-          <i class="fas fa-check-circle"></i> Processed
-        </h5>
-        <h2 class="text-success"><%= @stats[:processed_documents] %></h2>
-        <p class="text-muted mb-0">Successfully processed</p>
-      </div>
-    </div>
+    <%= render StatsCardComponent.new(
+      title: "Processed",
+      value: @stats[:processed_documents],
+      icon: "fas fa-check-circle",
+      color: "success",
+      description: "Successfully processed"
+    ) %>
   </div>
   <div class="col-md-3">
-    <div class="card border-info">
-      <div class="card-body text-center">
-        <h5 class="card-title text-info">
-          <i class="fas fa-vector-square"></i> Embeddings
-        </h5>
-        <h2 class="text-info"><%= @stats[:total_embeddings] %></h2>
-        <p class="text-muted mb-0">Vector embeddings</p>
-      </div>
-    </div>
+    <%= render StatsCardComponent.new(
+      title: "Embeddings",
+      value: @stats[:total_embeddings],
+      icon: "fas fa-vector-square",
+      color: "info",
+      description: "Vector embeddings"
+    ) %>
   </div>
   <div class="col-md-3">
-    <div class="card border-warning">
-      <div class="card-body text-center">
-        <h5 class="card-title text-warning">
-          <i class="fas fa-search"></i> Searches
-        </h5>
-        <h2 class="text-warning"><%= @stats[:total_searches] %></h2>
-        <p class="text-muted mb-0">Total searches</p>
-      </div>
-    </div>
+    <%= render StatsCardComponent.new(
+      title: "Searches",
+      value: @stats[:total_searches],
+      icon: "fas fa-search",
+      color: "warning",
+      description: "Total searches"
+    ) %>
   </div>
 </div>
 
 <div class="row">
   <div class="col-md-6">
-    <div class="card">
-      <div class="card-header">
-        <h5><i class="fas fa-chart-pie"></i> Document Types</h5>
-      </div>
-      <div class="card-body">
-        <% if @document_types.any? %>
-          <canvas id="documentTypesChart" width="400" height="200"></canvas>
-        <% else %>
-          <p class="text-muted">No documents yet. <%= link_to "Add your first document", new_document_path, class: "btn btn-primary btn-sm" %></p>
-        <% end %>
-      </div>
-    </div>
+    <%= render CardComponent.new(title: "Document Types", icon: "fas fa-chart-pie") do %>
+      <% if @document_types.any? %>
+        <canvas id="documentTypesChart" width="400" height="200"></canvas>
+      <% else %>
+        <p class="text-muted">No documents yet. <%= link_to "Add your first document", new_document_path, class: "btn btn-primary btn-sm" %></p>
+      <% end %>
+    <% end %>
   </div>
   
   <div class="col-md-6">
-    <div class="card">
-      <div class="card-header">
-        <h5><i class="fas fa-fire"></i> Most Searched Documents</h5>
-      </div>
-      <div class="card-body">
-        <% if @top_searched_documents.any? %>
-          <% @top_searched_documents.each do |title, count| %>
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="text-truncate"><%= title %></span>
-              <span class="badge bg-primary"><%= count %></span>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted">No search data yet. <%= link_to "Try searching", search_path, class: "btn btn-primary btn-sm" %></p>
+    <%= render CardComponent.new(title: "Most Searched Documents", icon: "fas fa-fire") do %>
+      <% if @top_searched_documents.any? %>
+        <% @top_searched_documents.each do |title, count| %>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-truncate"><%= title %></span>
+            <span class="badge bg-primary"><%= count %></span>
+          </div>
         <% end %>
-      </div>
-    </div>
+      <% else %>
+        <p class="text-muted">No search data yet. <%= link_to "Try searching", search_path, class: "btn btn-primary btn-sm" %></p>
+      <% end %>
+    <% end %>
   </div>
 </div>
 
@@ -105,9 +86,7 @@
                 <%= link_to document.title, document_path(document), class: "text-decoration-none" %>
                 <small class="text-muted d-block">
                   <%= document.document_type&.upcase %> • 
-                  <span class="badge bg-<%= document.status == 'processed' ? 'success' : document.status == 'failed' ? 'danger' : 'warning' %>">
-                    <%= document.status %>
-                  </span>
+                  <%= render StatusBadgeComponent.new(status: document.status) %>
                 </small>
               </div>
               <small class="text-muted"><%= time_ago_in_words(document.created_at) %> ago</small>
@@ -136,9 +115,9 @@
                 <strong><%= search.query %></strong>
                 <small class="text-muted d-block">
                   Type: <%= search.search_type.capitalize %>
-                  • Results: <%= search.result_count %>
-                  <% if search.search_time %>
-                    • Time: <%= number_with_precision(search.search_time, precision: 3) %>s
+                  • Results: <%= search.results_count %>
+                  <% if search.execution_time_ms %>
+                    • Time: <%= number_with_precision(search.execution_time_ms / 1000.0, precision: 3) %>s
                   <% end %>
                 </small>
               </div>

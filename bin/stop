@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+set -e
+
+APP_NAME="ragdoll-demo"
+PIDFILE=".foreman.pid"
+
+echo "🛑 Stopping ${APP_NAME} development environment..."
+
+# Function to cleanup processes
+cleanup_processes() {
+  local stopped=false
+  
+  # Kill any existing foreman processes for this app
+  if pgrep -f "foreman.*Procfile.dev" > /dev/null 2>&1; then
+    echo "  - Stopping existing foreman processes..."
+    pkill -f "foreman.*Procfile.dev" || true
+    sleep 2
+    stopped=true
+  fi
+  
+  # Kill Rails server processes on port 3000
+  if lsof -ti:3000 > /dev/null 2>&1; then
+    echo "  - Stopping Rails server on port 3000..."
+    lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+    sleep 1
+    stopped=true
+  fi
+  
+  # Kill SolidQueue workers for this app
+  if pgrep -f "jobs.*start" > /dev/null 2>&1; then
+    echo "  - Stopping SolidQueue workers..."
+    pkill -f "jobs.*start" || true
+    sleep 1
+    stopped=true
+  fi
+  
+  # Kill any Rails processes from this directory
+  local current_dir=$(pwd)
+  if pgrep -f "rails.*server.*${current_dir}" > /dev/null 2>&1; then
+    echo "  - Stopping Rails processes for ${current_dir}..."
+    pkill -f "rails.*server.*${current_dir}" || true
+    sleep 1
+    stopped=true
+  fi
+  
+  # Remove PID file if it exists
+  if [[ -f "$PIDFILE" ]]; then
+    echo "  - Removing PID file..."
+    rm -f "$PIDFILE"
+    stopped=true
+  fi
+  
+  if [[ "$stopped" == "true" ]]; then
+    echo "  ✅ All processes stopped"
+  else
+    echo "  ℹ️  No running processes found"
+  fi
+}
+
+cleanup_processes
+
+echo "👋 ${APP_NAME} stopped successfully!"

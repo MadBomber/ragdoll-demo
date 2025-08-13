@@ -222,6 +222,8 @@ GEM
     fiber-local (1.1.0)
       fiber-storage
     fiber-storage (1.0.1)
+    foreman (0.90.0)
+      thor (~> 1.4)
     fugit (1.11.1)
       et-orbi (~> 1, >= 1.2.11)
       raabro (~> 1.4)
@@ -438,6 +440,7 @@ GEM
       faraday (~> 2.0)
       faraday-follow_redirects (~> 0.3)
       faraday-retry (~> 2.0)
+    ruby-next-core (1.1.2)
     ruby-openai (8.2.0)
       event_stream_parser (>= 0.3.0, < 2.0.0)
       faraday (>= 1)
@@ -509,6 +512,12 @@ GEM
     unicode-emoji (4.0.4)
     uri (1.0.3)
     useragent (0.16.11)
+    view_component (4.0.1)
+      activesupport (>= 7.1.0, < 8.1)
+      concurrent-ruby (~> 1)
+    view_component-contrib (0.2.5)
+      ruby-next-core (>= 0.15.0)
+      view_component
     web-console (4.2.1)
       actionview (>= 6.0.0)
       activemodel (>= 6.0.0)
@@ -529,6 +538,7 @@ DEPENDENCIES
   claude-on-rails
   debug
   debug_me
+  foreman
   hotwire-livereload
   importmap-rails
   jbuilder
@@ -548,6 +558,8 @@ DEPENDENCIES
   thruster
   turbo-rails
   tzinfo-data
+  view_component
+  view_component-contrib
   web-console
 
 BUNDLED WITH

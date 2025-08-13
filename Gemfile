@@ -17,6 +17,9 @@ gem "turbo-rails"
 gem "stimulus-rails"
 gem "jbuilder"
 
+gem "view_component"
+gem "view_component-contrib"
+
 
 
 
@@ -46,6 +49,7 @@ group :development, :test do
 end
 
 group :development do
+  gem "foreman"
   gem "web-console"
   gem "hotwire-livereload"  # Auto-refresh browser on file changes
 end
