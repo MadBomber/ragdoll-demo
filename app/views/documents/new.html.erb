@@ -122,58 +122,6 @@
                 </div>
               </div>
             </div>
-            
-            <hr class="my-4">
-            
-            <!-- Reliable Upload Section -->
-            <div id="reliable-upload-section">
-              <h6 class="text-success mb-3">
-                <i class="fas fa-check-circle me-2"></i>Reliable Upload (Always Works)
-              </h6>
-              <p class="text-muted small mb-3">
-                This upload method works without JavaScript and is compatible with all browsers and network configurations.
-              </p>
-              
-              <%= form_with model: @document, 
-                            url: documents_path, 
-                            local: true, 
-                            multipart: true, 
-                            class: "needs-validation", 
-                            novalidate: true, 
-                            as: :ragdoll_document,
-                            id: "reliable-upload-form" do |form| %>
-                
-                <div class="mb-3">
-                  <label for="reliable_files" class="form-label">Select Files</label>
-                  <%= form.file_field :files, 
-                                      multiple: true, 
-                                      accept: ".pdf,.docx,.txt,.md,.html,.json,.xml,.csv", 
-                                      class: "form-control", 
-                                      id: "reliable_files",
-                                      required: true %>
-                  <div class="form-text">
-                    Files will be processed in the background. Check the Documents page for results.
-                  </div>
-                  <div class="invalid-feedback">
-                    Please select at least one file.
-                  </div>
-                </div>
-                
-                <div class="mb-3">
-                  <label for="reliable_metadata" class="form-label">Metadata (Optional)</label>
-                  <%= form.text_area :metadata, 
-                                     placeholder: '{"author": "Your Name", "category": "documentation"}', 
-                                     class: "form-control", 
-                                     rows: 3, 
-                                     id: "reliable_metadata" %>
-                </div>
-                
-                <button type="submit" class="btn btn-success" id="reliable-upload-btn">
-                  <i class="fas fa-upload me-2"></i>
-                  Upload Files (Reliable Method)
-                </button>
-              <% end %>
-            </div>
           </div>
           
           <!-- Text Content Tab -->
@@ -816,17 +764,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Reliable upload form handler
-  const reliableForm = document.getElementById('reliable-upload-form');
-  if (reliableForm) {
-    reliableForm.addEventListener('submit', function() {
-      const submitBtn = document.getElementById('reliable-upload-btn');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
-      }
-    });
-  }
   
   // Directory upload form handler
   const directoryForm = document.getElementById('directory-upload-form');
