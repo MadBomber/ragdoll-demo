@@ -15,9 +15,8 @@ class DocumentsController < ApplicationController
   
   def show
     @embeddings = @document.all_embeddings
-    # TODO: Implement search tracking
-    # @recent_searches = Ragdoll::Search.order(created_at: :desc).limit(10)
-    @recent_searches = []
+    # Load recent searches for sidebar
+    @recent_searches = Ragdoll::Search.order(created_at: :desc).limit(10)
   end
   
   def new
@@ -135,13 +134,74 @@ class DocumentsController < ApplicationController
   end
   
   def bulk_upload
-    if params[:directory_path].present?
+    Rails.logger.debug "🔍 Bulk upload params: #{params.inspect}"
+    Rails.logger.debug "🔍 Directory files param: #{params[:directory_files].inspect}"
+    Rails.logger.debug "🔍 Directory files class: #{params[:directory_files].class}"
+    
+    if params[:directory_files].present?
       begin
-        results = Ragdoll.add_directory(path: params[:directory_path])
-        flash[:notice] = "Successfully processed #{results.count} files from directory."
+        # Filter out empty strings that Rails includes in file arrays
+        files = params[:directory_files].reject(&:blank?)
+        Rails.logger.debug "🔍 Files array after filtering: #{files.inspect}"
+        Rails.logger.debug "🔍 First file class: #{files.first.class if files.respond_to?(:first)}"
+        
+        if files.empty?
+          flash[:alert] = "No valid files selected for upload."
+          redirect_to documents_path
+          return
+        end
+        
+        successful_count = 0
+        failed_files = []
+        
+        files.each do |file|
+          begin
+            # Create a temporary file to save the uploaded content
+            temp_file = Tempfile.new([File.basename(file.original_filename, ".*"), File.extname(file.original_filename)])
+            
+            # Handle encoding issues by reading as binary first
+            content = file.read
+            if content.encoding == Encoding::ASCII_8BIT
+              # Try to force UTF-8 encoding, replacing invalid characters
+              content = content.force_encoding('UTF-8')
+              unless content.valid_encoding?
+                content = content.encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
+              end
+            end
+            
+            temp_file.write(content)
+            temp_file.close
+            
+            # Add document using ragdoll
+            result = Ragdoll.add_document(path: temp_file.path)
+            
+            if result
+              successful_count += 1
+            else
+              failed_files << file.original_filename
+            end
+            
+          rescue => e
+            Rails.logger.error "Failed to process file #{file.original_filename}: #{e.message}"
+            failed_files << file.original_filename
+          ensure
+            # Clean up temp file
+            temp_file&.unlink if temp_file&.path
+          end
+        end
+        
+        if failed_files.any?
+          flash[:alert] = "Processed #{successful_count}/#{files.count} files. Failed: #{failed_files.join(', ')}"
+        else
+          flash[:notice] = "Successfully processed #{successful_count} files from directory."
+        end
+        
       rescue => e
+        Rails.logger.error "Bulk upload error: #{e.message}"
         flash[:alert] = "Error processing directory: #{e.message}"
       end
+    else
+      flash[:alert] = "No files selected for upload."
     end
     
     redirect_to documents_path

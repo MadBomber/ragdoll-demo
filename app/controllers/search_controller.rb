@@ -2,16 +2,61 @@ class SearchController < ApplicationController
   skip_before_action :verify_authenticity_token, only: [:search]
   
   def index
-    # TODO: Implement search tracking
-    @recent_searches = []
+    # Load recent searches for sidebar
+    @recent_searches = Ragdoll::Search.order(created_at: :desc).limit(10)
     @popular_queries = {}
-    @filters = {
-      document_type: params[:document_type],
-      status: params[:status],
-      limit: params[:limit]&.to_i || 10,
-      threshold: params[:threshold]&.to_f || (Rails.env.development? ? 0.001 : 0.7)  # Much lower threshold for development
-    }
-    @query = params[:query]
+    
+    # Check if we're reconstructing a previous search
+    if params[:search_id].present?
+      begin
+        previous_search = Ragdoll::Search.find(params[:search_id])
+        @reconstructed_search = previous_search
+        
+        # Extract stored form parameters
+        search_options = previous_search.search_options.is_a?(Hash) ? previous_search.search_options : 
+                        (previous_search.search_options.present? ? JSON.parse(previous_search.search_options) : {})
+        search_filters = previous_search.search_filters.is_a?(Hash) ? previous_search.search_filters : 
+                        (previous_search.search_filters.present? ? JSON.parse(previous_search.search_filters) : {})
+        
+        form_params = search_options.dig('form_params') || {}
+        
+        # Reconstruct query and filters from stored search
+        @query = previous_search.query
+        @filters = {
+          document_type: form_params['document_type'] || search_filters['document_type'],
+          status: form_params['status'] || search_filters['status'],
+          limit: form_params['limit'] || search_filters['limit'] || 10,
+          threshold: form_params['threshold'] || search_filters['threshold'] || 0.001
+        }
+        
+        # Reconstruct boolean search options
+        @use_similarity_search = form_params['use_similarity_search'] || search_options['use_similarity'] || 'true'
+        @use_fulltext_search = form_params['use_fulltext_search'] || search_options['use_fulltext'] || 'true'
+        
+        Rails.logger.debug "🔍 Reconstructed search from ID #{params[:search_id]}: #{@query}"
+        
+      rescue ActiveRecord::RecordNotFound
+        Rails.logger.warn "🔍 Search ID #{params[:search_id]} not found"
+        # Fall back to default behavior
+      rescue => e
+        Rails.logger.error "🔍 Error reconstructing search: #{e.message}"
+        # Fall back to default behavior
+      end
+    end
+    
+    # Default values if not reconstructing a search
+    unless @reconstructed_search
+      @filters = {
+        document_type: params[:document_type],
+        status: params[:status],
+        limit: params[:limit]&.to_i || 10,
+        threshold: params[:threshold]&.to_f || (Rails.env.development? ? 0.001 : 0.7)
+      }
+      @query = params[:query]
+      @use_similarity_search = params[:use_similarity_search] || 'true'
+      @use_fulltext_search = params[:use_fulltext_search] || 'true'
+    end
+    
     @search_performed = false
   end
   
@@ -26,9 +71,8 @@ class SearchController < ApplicationController
     }
     Rails.logger.debug "🔍 Query: #{@query.inspect}, Filters: #{@filters.inspect}"
     
-    # Initialize data needed for the view sidebar
-    # TODO: Implement search tracking
-    @recent_searches = []
+    # Initialize data needed for the view sidebar - load recent searches
+    @recent_searches = Ragdoll::Search.order(created_at: :desc).limit(10)
     @popular_queries = {}
     
     if @query.present?
@@ -42,11 +86,23 @@ class SearchController < ApplicationController
         # Perform similarity search if enabled
         if use_similarity
           begin
-            search_response = Ragdoll.search(
+            search_params = {
               query: @query,
               limit: @filters[:limit],
               threshold: @filters[:threshold]
-            )
+            }
+            
+            # Add document type filter if specified
+            if @filters[:document_type].present?
+              search_params[:document_type] = @filters[:document_type]
+            end
+            
+            # Add status filter if specified
+            if @filters[:status].present?
+              search_params[:status] = @filters[:status]
+            end
+            
+            search_response = Ragdoll.search(search_params)
             
             # The search returns a hash with :results and :statistics
             @results = search_response.is_a?(Hash) ? search_response[:results] || [] : []
@@ -81,7 +137,22 @@ class SearchController < ApplicationController
         
         # Perform full-text search if enabled
         if use_fulltext
-          fulltext_results = Ragdoll::Document.search_content(@query, limit: @filters[:limit], threshold: @filters[:threshold])
+          fulltext_params = {
+            limit: @filters[:limit], 
+            threshold: @filters[:threshold]
+          }
+          
+          # Add document type filter if specified
+          if @filters[:document_type].present?
+            fulltext_params[:document_type] = @filters[:document_type]
+          end
+          
+          # Add status filter if specified
+          if @filters[:status].present?
+            fulltext_params[:status] = @filters[:status]
+          end
+          
+          fulltext_results = Ragdoll::Document.search_content(@query, **fulltext_params)
           
           fulltext_results.each do |document|
             # Avoid duplicates if document was already found in similarity search
@@ -113,9 +184,38 @@ class SearchController < ApplicationController
         similarity_results = @detailed_results.select { |r| r[:search_type] == 'similarity' }
         similarities = similarity_results.map { |r| r[:similarity] }.compact
         
-        # TODO: Save search for analytics - requires query_embedding generation
-        # Currently disabled due to validation requirement for query_embedding
-        Rails.logger.debug "🔍 Search analytics saving disabled (requires query embedding generation)"
+        # Save search for analytics without query embedding (which is optional)
+        begin
+          Ragdoll::Search.create!(
+            query: @query,
+            search_type: search_type,
+            results_count: @detailed_results.count,
+            max_similarity_score: similarities.any? ? similarities.max : nil,
+            min_similarity_score: similarities.any? ? similarities.min : nil,
+            avg_similarity_score: similarities.any? ? (similarities.sum / similarities.size.to_f) : nil,
+            search_filters: @filters.to_json,
+            search_options: {
+              threshold_used: @filters[:threshold],
+              similarity_results: similarity_results.count,
+              fulltext_results: @detailed_results.select { |r| r[:search_type] == 'fulltext' }.count,
+              use_similarity: use_similarity,
+              use_fulltext: use_fulltext,
+              # Store original form parameters for reconstruction
+              form_params: {
+                use_similarity_search: params[:use_similarity_search],
+                use_fulltext_search: params[:use_fulltext_search],
+                limit: @filters[:limit],
+                threshold: @filters[:threshold],
+                document_type: @filters[:document_type],
+                status: @filters[:status]
+              }
+            }.to_json
+          )
+          Rails.logger.debug "🔍 Search saved successfully"
+        rescue => e
+          Rails.logger.error "🔍 Failed to save search: #{e.message}"
+          # Continue without failing the search
+        end
         
         Rails.logger.debug "🔍 Search completed successfully. Results count: #{@detailed_results.count}"
         @search_performed = true

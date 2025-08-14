@@ -112,12 +112,14 @@
           <% @stats[:recent_searches].each do |search| %>
             <div class="d-flex justify-content-between align-items-center mb-2">
               <div>
-                <strong><%= search.query %></strong>
+                <a href="<%= search_path %>?search_id=<%= search.id %>" class="text-decoration-none">
+                  <i class="fas fa-search me-1"></i><strong><%= search.query %></strong>
+                </a>
                 <small class="text-muted d-block">
-                  Type: <%= search.search_type.capitalize %>
-                  • Results: <%= search.results_count %>
+                  <%= search.search_type.titleize %>
+                  • <%= search.results_count %> results
                   <% if search.execution_time_ms %>
-                    • Time: <%= number_with_precision(search.execution_time_ms / 1000.0, precision: 3) %>s
+                    • <%= number_with_precision(search.execution_time_ms / 1000.0, precision: 3) %>s
                   <% end %>
                 </small>
               </div>

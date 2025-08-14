@@ -10,7 +10,7 @@ GIT
 
 GIT
   remote: https://github.com/MadBomber/ragdoll.git
-  revision: 8bae447b4c62a64d80e87cf512bc1a037c56f618
+  revision: 1f75641bba26dabddce1775f3125dc2a340b2eb6
   branch: develop
   specs:
     ragdoll (0.1.10)

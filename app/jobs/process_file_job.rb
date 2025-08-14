@@ -3,8 +3,16 @@ class ProcessFileJob < ApplicationJob
 
   def perform(file_id, session_id, filename, temp_path)
     puts "🚀 ProcessFileJob starting: file_id=#{file_id}, session_id=#{session_id}, filename=#{filename}"
+    puts "📁 Temp file path: #{temp_path}"
+    puts "📊 Temp file exists: #{File.exist?(temp_path)}"
+    puts "📏 Temp file size: #{File.exist?(temp_path) ? File.size(temp_path) : 'N/A'} bytes"
     
     begin
+      # Verify temp file exists before processing
+      unless File.exist?(temp_path)
+        raise "Temporary file not found: #{temp_path}"
+      end
+      
       # Broadcast start
       broadcast_data = {
         file_id: file_id,
@@ -30,9 +38,6 @@ class ProcessFileJob < ApplicationJob
       result = Ragdoll.add_document(path: temp_path)
       
       broadcast_progress(session_id, file_id, filename, 75, 'Generating embeddings...')
-      
-      # Clean up temp file
-      File.delete(temp_path) if File.exist?(temp_path)
       
       if result[:success] && result[:document_id]
         document = Ragdoll::Document.find(result[:document_id])
@@ -61,10 +66,7 @@ class ProcessFileJob < ApplicationJob
       
     rescue => e
       puts "💥 ProcessFileJob error: #{e.message}"
-      puts e.backtrace.first(3)
-      
-      # Clean up temp file on error
-      File.delete(temp_path) if File.exist?(temp_path)
+      puts e.backtrace.first(5)
       
       # Broadcast error
       error_data = {
@@ -81,6 +83,22 @@ class ProcessFileJob < ApplicationJob
         puts "✅ Error broadcast sent successfully"
       rescue => e
         puts "❌ Error broadcast failed: #{e.message}"
+      end
+      
+      # Re-raise the error to mark job as failed
+      raise e
+    ensure
+      # ALWAYS clean up temp file in ensure block
+      if temp_path && File.exist?(temp_path)
+        puts "🧹 Cleaning up temp file: #{temp_path}"
+        begin
+          File.delete(temp_path)
+          puts "✅ Temp file deleted successfully"
+        rescue => e
+          puts "❌ Failed to delete temp file: #{e.message}"
+        end
+      else
+        puts "📝 Temp file already cleaned up or doesn't exist: #{temp_path}"
       end
     end
   end

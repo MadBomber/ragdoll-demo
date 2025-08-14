@@ -177,21 +177,23 @@
             <%= form_with url: bulk_upload_documents_path, 
                           method: :post, 
                           local: true, 
+                          multipart: true,
                           class: "needs-validation", 
                           novalidate: true, 
                           id: "directory-upload-form" do |form| %>
               
               <div class="mb-3">
-                <label for="directory_path" class="form-label">Directory Path</label>
-                <%= form.text_field :directory_path, 
-                                    placeholder: "/path/to/documents", 
+                <label for="directory_files" class="form-label">Select Directory</label>
+                <%= form.file_field :directory_files, 
+                                    multiple: true, 
                                     class: "form-control", 
+                                    id: "directory_files",
                                     required: true %>
                 <div class="form-text">
-                  Full path to directory containing documents to import
+                  Click "Choose Files" and select a folder to upload all supported files within it
                 </div>
                 <div class="invalid-feedback">
-                  Please provide a valid directory path.
+                  Please select a directory.
                 </div>
               </div>
               
@@ -210,6 +212,70 @@
                 <i class="fas fa-spinner fa-spin"></i>
                 <strong>Processing...</strong> Your directory is being imported. This may take several minutes for large directories.
                 Please do not close this page.
+              </div>
+              
+              <!-- Directory Upload Progress Container -->
+              <div id="directory-progress-container" class="mt-4" style="display: none;">
+                <div class="card">
+                  <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-folder-open me-2"></i>Directory Import Progress</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="mb-3">
+                      <div class="d-flex justify-content-between mb-2">
+                        <span>Upload Progress:</span>
+                        <span id="directory-upload-percentage">0%</span>
+                      </div>
+                      <div class="progress mb-2">
+                        <div id="directory-upload-progress-bar" 
+                             class="progress-bar" 
+                             role="progressbar" 
+                             style="width: 0%" 
+                             aria-valuenow="0" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                          0%
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <div class="d-flex justify-content-between mb-2">
+                        <span>Processing Progress:</span>
+                        <span id="directory-processing-percentage">0%</span>
+                      </div>
+                      <div class="progress">
+                        <div id="directory-processing-progress-bar" 
+                             class="progress-bar bg-success" 
+                             role="progressbar" 
+                             style="width: 0%" 
+                             aria-valuenow="0" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                          0%
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="row">
+                      <div class="col-md-6">
+                        <small class="text-muted">
+                          <i class="fas fa-upload me-1"></i>
+                          <span id="directory-files-uploaded">0</span> / 
+                          <span id="directory-total-files">0</span> files uploaded
+                        </small>
+                      </div>
+                      <div class="col-md-6">
+                        <small class="text-muted">
+                          <i class="fas fa-check-circle me-1"></i>
+                          <span id="directory-files-processed">0</span> files processed
+                        </small>
+                      </div>
+                    </div>
+                    
+                    <small id="directory-progress-status" class="text-muted mt-2 d-block">Preparing upload...</small>
+                  </div>
+                </div>
               </div>
             <% end %>
           </div>
@@ -335,6 +401,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       
+      // Set upload in progress flag
+      uploadInProgress = true;
+      
       // Disable submit button
       const originalBtnHtml = submitBtn.innerHTML;
       submitBtn.disabled = true;
@@ -418,6 +487,9 @@ document.addEventListener('DOMContentLoaded', function() {
           
           updateProgressStatus('Upload successful! Background processing started with real-time tracking...');
           
+          // Clear upload flag since upload phase is complete
+          uploadInProgress = false;
+          
           // Clear form
           fileInput.value = '';
           
@@ -434,6 +506,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         updateProgressStatus('Upload failed: ' + error.message, 'danger');
         alert('Upload failed: ' + error.message);
+        
+        // Clear upload flag on error
+        uploadInProgress = false;
         
         // Re-enable submit button only on error
         submitBtn.disabled = false;
@@ -765,12 +840,65 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   
+  // Track upload state to show navigation warnings
+  let uploadInProgress = false;
+  
+  // Warn user before leaving during upload
+  function handleBeforeUnload(e) {
+    if (uploadInProgress) {
+      const confirmationMessage = 'Upload in progress! Leaving this page will cancel the upload. Are you sure you want to leave?';
+      e.preventDefault();
+      e.returnValue = confirmationMessage;
+      return confirmationMessage;
+    }
+  }
+  
+  // Add beforeunload listener
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  
   // Directory upload form handler
   const directoryForm = document.getElementById('directory-upload-form');
+  const directoryInput = document.getElementById('directory_files');
+  
+  if (directoryInput) {
+    // Set webkitdirectory attribute (Rails data helper doesn't work for this)
+    directoryInput.setAttribute('webkitdirectory', '');
+    
+    // Show directory selection info
+    directoryInput.addEventListener('change', function() {
+      const files = this.files;
+      if (files.length > 0) {
+        // Get directory name from first file path
+        const firstFile = files[0];
+        const pathParts = firstFile.webkitRelativePath.split('/');
+        const directoryName = pathParts[0];
+        
+        // Update form text with selection info
+        const formText = directoryInput.nextElementSibling;
+        if (formText && formText.classList.contains('form-text')) {
+          formText.innerHTML = `Selected directory: <strong>${directoryName}</strong> (${files.length} files)`;
+        }
+      }
+    });
+  }
+  
   if (directoryForm) {
-    directoryForm.addEventListener('submit', function() {
+    directoryForm.addEventListener('submit', function(e) {
+      e.preventDefault(); // Prevent default form submission
+      
       const submitBtn = document.getElementById('directory-upload-btn');
       const processingAlert = document.getElementById('directory-processing-alert');
+      const progressContainer = document.getElementById('directory-progress-container');
+      const fileInput = document.getElementById('directory_files');
+      
+      // Validate files
+      if (!fileInput.files.length) {
+        alert('Please select a directory.');
+        return;
+      }
+      
+      // Set upload in progress flag
+      uploadInProgress = true;
       
       if (submitBtn) {
         const spinner = submitBtn.querySelector('.spinner-border');
@@ -784,7 +912,216 @@ document.addEventListener('DOMContentLoaded', function() {
       if (processingAlert) {
         processingAlert.classList.remove('d-none');
       }
+      
+      // Show progress container
+      if (progressContainer) {
+        progressContainer.style.display = 'block';
+        setupDirectoryProgress(fileInput.files);
+      }
+      
+      // Submit form using fetch for better progress control
+      submitDirectoryUpload();
     });
+  }
+  
+  // Setup directory progress display
+  function setupDirectoryProgress(files) {
+    const totalFiles = files.length;
+    
+    // Initialize progress display
+    document.getElementById('directory-total-files').textContent = totalFiles;
+    document.getElementById('directory-files-uploaded').textContent = '0';
+    document.getElementById('directory-files-processed').textContent = '0';
+    updateDirectoryUploadProgress(0);
+    updateDirectoryProcessingProgress(0);
+    updateDirectoryProgressStatus('Starting upload...');
+  }
+  
+  // Submit directory upload with progress tracking
+  async function submitDirectoryUpload() {
+    const form = document.getElementById('directory-upload-form');
+    const formData = new FormData(form);
+    
+    // Generate session ID for progress tracking
+    const sessionId = generateTemporarySessionId();
+    formData.append('temp_session_id', sessionId);
+    
+    // Setup ActionCable for directory progress if available
+    if (checkActionCableAvailability()) {
+      setupDirectoryProgressTracking(sessionId);
+    }
+    
+    try {
+      updateDirectoryProgressStatus('Uploading files to server...');
+      
+      const csrfToken = document.querySelector('meta[name="csrf-token"]');
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRF-Token': csrfToken ? csrfToken.content : ''
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      // Simulate upload completion (since we don't have real upload progress from server)
+      updateDirectoryUploadProgress(100);
+      updateDirectoryProgressStatus('Upload complete! Processing files...');
+      
+      const result = await response.text(); // Get HTML response
+      
+      // Clear upload flag since upload phase is complete
+      uploadInProgress = false;
+      
+      // Check if response indicates success (contains success message or redirect)
+      if (result.includes('successfully') || result.includes('imported') || response.redirected) {
+        updateDirectoryProgressStatus('Directory import completed successfully!');
+        
+        // Redirect after a short delay to show final status
+        setTimeout(() => {
+          window.location.href = '/documents';
+        }, 2000);
+      } else {
+        // Parse any error messages from the response
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = result;
+        const errorMsg = tempDiv.querySelector('.alert-danger')?.textContent?.trim() || 'Import completed with unknown status';
+        updateDirectoryProgressStatus(errorMsg);
+      }
+      
+    } catch (error) {
+      console.error('Directory upload error:', error);
+      updateDirectoryProgressStatus('Upload failed: ' + error.message);
+      
+      // Clear upload flag on error
+      uploadInProgress = false;
+      
+      // Re-enable form
+      const submitBtn = document.getElementById('directory-upload-btn');
+      if (submitBtn) {
+        const spinner = submitBtn.querySelector('.spinner-border');
+        const btnText = submitBtn.querySelector('.btn-text');
+        
+        submitBtn.disabled = false;
+        if (spinner) spinner.classList.add('d-none');
+        if (btnText) btnText.textContent = 'Import Directory';
+      }
+    }
+  }
+  
+  // Setup ActionCable progress tracking for directory uploads
+  function setupDirectoryProgressTracking(sessionId) {
+    console.log('Setting up directory progress tracking for session:', sessionId);
+    
+    if (!checkActionCableAvailability()) {
+      console.warn('ActionCable not available for directory progress tracking');
+      return;
+    }
+    
+    try {
+      if (!window.App) window.App = {};
+      if (!window.App.cable && typeof ActionCable !== 'undefined') {
+        window.App.cable = ActionCable.createConsumer('/cable');
+      }
+      
+      const consumer = window.App.cable;
+      if (!consumer) {
+        console.warn('No ActionCable consumer available for directory tracking');
+        return;
+      }
+      
+      const directoryProgressTracker = consumer.subscriptions.create(
+        {
+          channel: "FileProcessingChannel", 
+          session_id: sessionId
+        },
+        {
+          received: function(data) {
+            console.log('Directory progress update received:', data);
+            handleDirectoryProgressUpdate(data);
+          },
+          connected: function() {
+            console.log('Connected to directory progress tracking');
+            updateDirectoryProgressStatus('Connected to real-time updates...');
+          },
+          disconnected: function() {
+            console.log('Disconnected from directory progress tracking');
+          }
+        }
+      );
+      
+    } catch (error) {
+      console.error('Failed to setup directory progress tracking:', error);
+    }
+  }
+  
+  // Handle directory progress updates
+  function handleDirectoryProgressUpdate(data) {
+    const { filename, status, progress, total_files, completed_files } = data;
+    
+    if (total_files && completed_files !== undefined) {
+      const processingPercentage = Math.round((completed_files / total_files) * 100);
+      updateDirectoryProcessingProgress(processingPercentage);
+      
+      document.getElementById('directory-files-processed').textContent = completed_files;
+      
+      if (status === 'completed') {
+        updateDirectoryProgressStatus(`Processing ${filename}... (${completed_files}/${total_files} complete)`);
+      } else if (status === 'error') {
+        updateDirectoryProgressStatus(`Error processing ${filename}: ${progress || 'Unknown error'}`);
+      }
+      
+      // Check if all files are complete
+      if (completed_files >= total_files) {
+        updateDirectoryProgressStatus('All files processed successfully! Redirecting...');
+        setTimeout(() => {
+          window.location.href = '/documents';
+        }, 2000);
+      }
+    }
+  }
+  
+  // Update directory upload progress bar
+  function updateDirectoryUploadProgress(percentage) {
+    const progressBar = document.getElementById('directory-upload-progress-bar');
+    const percentageSpan = document.getElementById('directory-upload-percentage');
+    
+    if (progressBar) {
+      progressBar.style.width = percentage + '%';
+      progressBar.setAttribute('aria-valuenow', percentage);
+      progressBar.textContent = percentage + '%';
+    }
+    
+    if (percentageSpan) {
+      percentageSpan.textContent = percentage + '%';
+    }
+  }
+  
+  // Update directory processing progress bar
+  function updateDirectoryProcessingProgress(percentage) {
+    const progressBar = document.getElementById('directory-processing-progress-bar');
+    const percentageSpan = document.getElementById('directory-processing-percentage');
+    
+    if (progressBar) {
+      progressBar.style.width = percentage + '%';
+      progressBar.setAttribute('aria-valuenow', percentage);
+      progressBar.textContent = percentage + '%';
+    }
+    
+    if (percentageSpan) {
+      percentageSpan.textContent = percentage + '%';
+    }
+  }
+  
+  // Update directory progress status message
+  function updateDirectoryProgressStatus(message) {
+    const statusEl = document.getElementById('directory-progress-status');
+    if (statusEl) {
+      statusEl.textContent = message;
+    }
   }
   
   // Text content form handler

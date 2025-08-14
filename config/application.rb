@@ -40,5 +40,8 @@ module Dummy
 
     # Don't generate system test files.
     config.generators.system_tests = nil
+    
+    # Increase multipart file limit for large directory uploads
+    config.force_ssl = false if Rails.env.development?
   end
 end
