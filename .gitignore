@@ -1,5 +1,7 @@
 # ragdoll-demo/.gitignore
 
+/debug/
+/tmp/
 .aigcm_msg
 
 # ClaudeOnRails
