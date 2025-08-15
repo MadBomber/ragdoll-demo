@@ -94,8 +94,40 @@ bundle exec rails db:setup
 
 - Ruby 3.4.4+
 - Rails 8.0.2+
-- PostgreSQL
+- PostgreSQL with pgvector extension
+- Redis (for ActionCable and real-time features)
 - Node.js (for asset compilation)
+
+### Installing Redis
+
+**macOS (using Homebrew):**
+```bash
+# Install Redis
+brew install redis
+
+# Start Redis service
+brew services start redis
+
+# Or run Redis manually
+redis-server
+```
+
+**Ubuntu/Debian:**
+```bash
+# Install Redis
+sudo apt update
+sudo apt install redis-server
+
+# Start Redis service
+sudo systemctl start redis-server
+sudo systemctl enable redis-server
+```
+
+**Verify Redis is running:**
+```bash
+redis-cli ping
+# Should return: PONG
+```
 
 ## Architecture
 
@@ -168,3 +200,79 @@ just demo-bundle-clean # Clean and update gems
 - **Real-time Status**: Check running processes with `./bin/status`
 - **Process Discovery**: Automatically detects Rails servers, workers, and foreman processes
 - **PID Tracking**: Shows process IDs for debugging and manual management
+
+## Troubleshooting
+
+### Redis Connection Issues
+
+If you see errors related to Redis or ActionCable:
+
+1. **Check if Redis is running:**
+   ```bash
+   redis-cli ping
+   ```
+
+2. **Start Redis if not running:**
+   ```bash
+   # macOS
+   brew services start redis
+   
+   # Ubuntu/Debian
+   sudo systemctl start redis-server
+   ```
+
+3. **Check Redis logs:**
+   ```bash
+   # macOS
+   tail -f /opt/homebrew/var/log/redis.log
+   
+   # Ubuntu/Debian
+   sudo tail -f /var/log/redis/redis-server.log
+   ```
+
+### Application Won't Start
+
+1. **Check all requirements are installed:**
+   - Ruby 3.4.4+: `ruby --version`
+   - Rails 8.0.2+: `rails --version`
+   - PostgreSQL: `psql --version`
+   - Redis: `redis-cli ping`
+   - Node.js: `node --version`
+
+2. **Run the comprehensive startup script:**
+   ```bash
+   # From the meta directory
+   just start
+   ```
+   This script checks for Redis and provides helpful error messages.
+
+3. **Manual cleanup if needed:**
+   ```bash
+   ./bin/stop
+   # Or from meta directory
+   just cleanup
+   ```
+
+### Database Issues
+
+If you encounter database problems:
+
+1. **Ensure PostgreSQL is running:**
+   ```bash
+   # macOS
+   brew services start postgresql
+   
+   # Ubuntu/Debian
+   sudo systemctl start postgresql
+   ```
+
+2. **Create database if missing:**
+   ```bash
+   bundle exec rails db:setup
+   ```
+
+3. **Install pgvector extension:**
+   ```sql
+   # Connect to your database and run:
+   CREATE EXTENSION IF NOT EXISTS vector;
+   ```

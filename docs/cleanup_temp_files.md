@@ -1,6 +1,8 @@
 # Temporary File Cleanup System
 
-This document describes the automatic cleanup system for temporary upload files in the ragdoll-demo application.
+This document describes the automatic cleanup system for temporary upload files in the Ragdoll Demo application. The cleanup system is essential for production deployments to prevent disk space issues and maintain optimal performance.
+
+> 📚 **Related Documentation**: This is part of the [Ragdoll Demo Documentation](README.md). For the complete user experience, see the [User Manual](user_manual.md).
 
 ## Overview
 
