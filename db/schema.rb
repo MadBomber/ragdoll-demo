@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_09_044137) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_15_221329) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -39,20 +39,23 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_09_044137) do
     t.string "location", null: false, comment: "Source location of document (file path, URL, or identifier)"
     t.string "title", null: false, comment: "Human-readable document title for display and search"
     t.text "summary", default: "", null: false, comment: "LLM-generated summary of document content"
-    t.text "keywords", default: "", null: false, comment: "LLM-generated comma-separated keywords of document"
     t.string "document_type", default: "text", null: false, comment: "Document format type"
     t.string "status", default: "pending", null: false, comment: "Document processing status"
     t.json "metadata", default: {}, comment: "LLM-generated structured metadata about the file"
     t.datetime "file_modified_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false, comment: "Timestamp when the source file was last modified"
     t.datetime "created_at", null: false, comment: "Standard creation and update timestamps"
     t.datetime "updated_at", null: false, comment: "Standard creation and update timestamps"
+    t.tsvector "search_vector"
+    t.text "keywords", default: [], array: true
     t.index "((metadata ->> 'classification'::text))", name: "index_ragdoll_documents_on_metadata_classification", comment: "Index for filtering by document classification"
     t.index "((metadata ->> 'document_type'::text))", name: "index_ragdoll_documents_on_metadata_type", comment: "Index for filtering by document type"
     t.index "to_tsvector('english'::regconfig, (((((((COALESCE(title, ''::character varying))::text || ' '::text) || COALESCE((metadata ->> 'summary'::text), ''::text)) || ' '::text) || COALESCE((metadata ->> 'keywords'::text), ''::text)) || ' '::text) || COALESCE((metadata ->> 'description'::text), ''::text)))", name: "index_ragdoll_documents_on_fulltext_search", using: :gin, comment: "Full-text search across title and metadata fields"
     t.index ["created_at"], name: "index_ragdoll_documents_on_created_at", comment: "Index for chronological sorting"
     t.index ["document_type", "status"], name: "index_ragdoll_documents_on_document_type_and_status", comment: "Composite index for type+status filtering"
     t.index ["document_type"], name: "index_ragdoll_documents_on_document_type", comment: "Index for filtering by document type"
+    t.index ["keywords"], name: "index_ragdoll_documents_on_keywords_gin", using: :gin
     t.index ["location"], name: "index_ragdoll_documents_on_location", unique: true, comment: "Unique index for document source lookup"
+    t.index ["search_vector"], name: "index_ragdoll_documents_on_search_vector", using: :gin
     t.index ["status"], name: "index_ragdoll_documents_on_status", comment: "Index for filtering by processing status"
     t.index ["title"], name: "index_ragdoll_documents_on_title", comment: "Index for title-based search"
   end
