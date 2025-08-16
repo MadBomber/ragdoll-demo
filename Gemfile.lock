@@ -1,19 +1,20 @@
 GIT
   remote: https://github.com/MadBomber/ragdoll-rails.git
-  revision: 97bef6553013e11c6663f02c3e0e716a353f8596
-  branch: develop
+  revision: 21b9ff829d40ac27ebe53d3770f4ca24627a47b9
+  branch: update-rails
   specs:
-    ragdoll-rails (0.1.10)
+    ragdoll-rails (0.1.11)
       ragdoll
       rails (>= 8.0.2)
       sidekiq
+      view_component (>= 2.0)
 
 GIT
   remote: https://github.com/MadBomber/ragdoll.git
-  revision: 1f75641bba26dabddce1775f3125dc2a340b2eb6
+  revision: e4e8cc6689f345f365150ded831be24265edae5c
   branch: develop
   specs:
-    ragdoll (0.1.10)
+    ragdoll (0.1.11)
       activejob
       activerecord
       debug_me
@@ -109,7 +110,7 @@ GEM
       public_suffix (>= 2.0.2, < 7.0)
     afm (1.0.0)
     ast (2.4.3)
-    async (2.27.2)
+    async (2.27.3)
       console (~> 1.29)
       fiber-annotation
       io-event (~> 1.11)
@@ -449,7 +450,7 @@ GEM
       faraday-multipart (>= 1)
     ruby-progressbar (1.13.0)
     ruby-rc4 (0.1.5)
-    ruby_llm (1.6.1)
+    ruby_llm (1.6.2)
       base64
       event_stream_parser (~> 1)
       faraday (>= 1.10.0)
@@ -501,7 +502,7 @@ GEM
     thor (1.4.0)
     thruster (0.1.15-arm64-darwin)
     timeout (0.4.3)
-    traces (0.16.2)
+    traces (0.17.0)
     ttfunk (1.8.0)
       bigdecimal (~> 3.1)
     turbo-rails (2.0.16)
@@ -509,12 +510,12 @@ GEM
       railties (>= 7.1.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
-    unicode-display_width (3.1.4)
+    unicode-display_width (3.1.5)
       unicode-emoji (~> 4.0, >= 4.0.4)
     unicode-emoji (4.0.4)
     uri (1.0.3)
     useragent (0.16.11)
-    view_component (4.0.1)
+    view_component (4.0.2)
       activesupport (>= 7.1.0, < 8.1)
       concurrent-ruby (~> 1)
     view_component-contrib (0.2.5)
