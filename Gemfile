@@ -4,7 +4,7 @@ source "https://rubygems.org"
 gem "rails", "~> 8.0.2"
 
 gem "ragdoll", github: "MadBomber/ragdoll", branch: "develop"
-gem "ragdoll-rails", github: "MadBomber/ragdoll-rails", branch: "update-rails"
+gem "ragdoll-rails", path: "../ragdoll-rails"
 
 # Temporary workaround - ragdoll needs debug_me at runtime
 gem "debug_me"

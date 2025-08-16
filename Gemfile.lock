@@ -1,15 +1,4 @@
 GIT
-  remote: https://github.com/MadBomber/ragdoll-rails.git
-  revision: c526ec610c3dc80c39d6164bbc405d10bb9f9de4
-  branch: update-rails
-  specs:
-    ragdoll-rails (0.1.11)
-      ragdoll
-      rails (>= 8.0.2)
-      sidekiq
-      view_component (>= 2.0)
-
-GIT
   remote: https://github.com/MadBomber/ragdoll.git
   revision: e4e8cc6689f345f365150ded831be24265edae5c
   branch: develop
@@ -30,6 +19,16 @@ GIT
       rubyzip
       searchkick
       shrine
+
+PATH
+  remote: ../ragdoll-rails
+  specs:
+    ragdoll-rails (0.1.11)
+      actioncable (>= 8.0.2)
+      ragdoll
+      rails (>= 8.0.2)
+      sidekiq
+      view_component (>= 2.0)
 
 GEM
   remote: https://rubygems.org/
