@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/MadBomber/ragdoll-rails.git
-  revision: 21b9ff829d40ac27ebe53d3770f4ca24627a47b9
+  revision: c526ec610c3dc80c39d6164bbc405d10bb9f9de4
   branch: update-rails
   specs:
     ragdoll-rails (0.1.11)

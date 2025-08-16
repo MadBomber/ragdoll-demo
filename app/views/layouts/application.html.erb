@@ -57,13 +57,19 @@
   </head>
 
   <body>
-    <%= render NavbarComponent.new %>
+    <!-- Flash messages for the landing page -->
+    <% if flash.any? %>
+      <div class="container mt-3">
+        <% flash.each do |type, message| %>
+          <div class="alert alert-<%= type == 'notice' ? 'success' : type == 'alert' ? 'danger' : 'info' %> alert-dismissible fade show" role="alert">
+            <%= message %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
 
-    <div class="container mt-4">
-      <%= render FlashMessagesComponent.new(flash: flash) %>
-
-      <%= yield %>
-    </div>
+    <%= yield %>
 
     <footer class="mt-5 py-3 text-center text-muted border-top">
       <small>Ragdoll Demo Application - <%= Ragdoll.version.join(' | ') %></small>

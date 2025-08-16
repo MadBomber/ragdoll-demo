@@ -1,9 +1,9 @@
 Rails.application.routes.draw do
+  # Landing page
+  root "home#index"
+  
   # Mount the Ragdoll Rails Engine
   mount Ragdoll::Rails::Engine, at: "/ragdoll"
-  
-  # Redirect root to the engine
-  root to: redirect("/ragdoll")
   
   # Legacy routes - now handled by the engine
   # All Ragdoll functionality is available at /ragdoll/*
