@@ -1,0 +1,2 @@
+web: bundle exec rails server -p 3000
+worker: RUBY_YJIT_ENABLE=0 ./bin/jobs start

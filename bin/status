@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+APP_NAME="ragdoll-demo"
+
+echo "📊 ${APP_NAME} Process Status:"
+echo ""
+
+# Function to check process status
+check_process() {
+  local process_name="$1"
+  local search_pattern="$2"
+  local port="$3"
+  
+  if [[ -n "$port" ]]; then
+    # Check by port
+    if lsof -ti:$port > /dev/null 2>&1; then
+      echo "✅ $process_name: Running on port $port"
+      lsof -ti:$port | while read pid; do
+        echo "   PID: $pid"
+      done
+      return 0
+    else
+      echo "❌ $process_name: Not running on port $port"
+      return 1
+    fi
+  else
+    # Check by process pattern
+    if pgrep -f "$search_pattern" > /dev/null 2>&1; then
+      echo "✅ $process_name: Running"
+      pgrep -f "$search_pattern" | head -5 | while read pid; do
+        echo "   PID: $pid"
+      done
+      return 0
+    else
+      echo "❌ $process_name: Not running"
+      return 1
+    fi
+  fi
+}
+
+# Check each process
+check_process "Foreman" "foreman.*Procfile.dev"
+foreman_running=$?
+
+check_process "Rails Server" "" "3000"
+rails_running=$?
+
+check_process "SolidQueue Workers" "jobs.*${APP_NAME}"
+worker_running=$?
+
+echo ""
+echo "🌐 URLs:"
+if [[ $rails_running -eq 0 ]]; then
+  echo "  - Application: http://localhost:3000 ✅"
+  echo "  - Jobs Dashboard: http://localhost:3000/mission_control/jobs ✅"
+else
+  echo "  - Application: http://localhost:3000 ❌"
+  echo "  - Jobs Dashboard: http://localhost:3000/mission_control/jobs ❌"
+fi
+
+echo ""
+echo "📁 Useful Commands:"
+echo "  - Start: ./bin/dev or just start"
+echo "  - Stop:  ./bin/stop or just stop"
+echo "  - Logs:  tail -f log/development.log or just logs"
+
+# Overall status
+echo ""
+if [[ $foreman_running -eq 0 ]] || [[ $rails_running -eq 0 && $worker_running -eq 0 ]]; then
+  echo "🟢 Overall Status: Running"
+  exit 0
+else
+  echo "🔴 Overall Status: Stopped"
+  exit 1
+fi

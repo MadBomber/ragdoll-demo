@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ActionCable Debug Test</title>
+    <script src="https://cdn.jsdelivr.net/gh/rails/rails@7-1-stable/actioncable/app/assets/javascripts/action_cable.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { background: #f0f0f0; padding: 10px; margin: 10px 0; max-height: 400px; overflow-y: auto; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        button { margin: 5px; padding: 10px 15px; }
+    </style>
+</head>
+<body>
+    <h1>ActionCable Debug Test</h1>
+    
+    <div id="status" class="status">Initializing...</div>
+    
+    <button onclick="testActionCableLoad()">Test ActionCable Load</button>
+    <button onclick="testConsumerCreate()">Test Consumer Create</button>
+    <button onclick="testChannelSubscribe()">Test Channel Subscribe</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <h3>Debug Log:</h3>
+    <div id="log" class="log"></div>
+
+    <script>
+        let consumer = null;
+        let subscription = null;
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toISOString().substr(11, 8);
+            logDiv.innerHTML += `<div style="color: ${type === 'error' ? 'red' : type === 'success' ? 'green' : 'black'}">
+                ${timestamp}: ${message}
+            </div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        function testActionCableLoad() {
+            log('Testing ActionCable load...');
+            
+            if (typeof ActionCable === 'undefined') {
+                log('❌ ActionCable is not loaded!', 'error');
+                updateStatus('ActionCable not loaded', 'error');
+                return false;
+            }
+            
+            log('✅ ActionCable is loaded', 'success');
+            log(`ActionCable version: ${ActionCable.VERSION || 'unknown'}`);
+            updateStatus('ActionCable loaded successfully', 'success');
+            return true;
+        }
+        
+        function testConsumerCreate() {
+            if (!testActionCableLoad()) return;
+            
+            log('Testing consumer creation...');
+            
+            try {
+                consumer = ActionCable.createConsumer('/cable');
+                log('✅ Consumer created successfully', 'success');
+                log(`Consumer object: ${consumer}`);
+                updateStatus('Consumer created', 'success');
+                return true;
+            } catch (error) {
+                log(`❌ Failed to create consumer: ${error.message}`, 'error');
+                updateStatus('Consumer creation failed', 'error');
+                return false;
+            }
+        }
+        
+        function testChannelSubscribe() {
+            if (!testConsumerCreate()) return;
+            
+            log('Testing channel subscription...');
+            
+            const testSessionId = 'test-session-' + Math.random().toString(36).substr(2, 9);
+            log(`Using test session ID: ${testSessionId}`);
+            
+            try {
+                subscription = consumer.subscriptions.create(
+                    {
+                        channel: "FileProcessingChannel",
+                        session_id: testSessionId
+                    },
+                    {
+                        received: function(data) {
+                            log(`📡 Message received: ${JSON.stringify(data)}`, 'success');
+                        },
+                        connected: function() {
+                            log('✅ Connected to FileProcessingChannel!', 'success');
+                            updateStatus('Connected to channel', 'success');
+                        },
+                        disconnected: function() {
+                            log('❌ Disconnected from FileProcessingChannel', 'warning');
+                            updateStatus('Disconnected from channel', 'warning');
+                        },
+                        rejected: function() {
+                            log('❌ Connection rejected by FileProcessingChannel', 'error');
+                            updateStatus('Connection rejected', 'error');
+                        }
+                    }
+                );
+                
+                log('📡 Subscription created, waiting for connection...', 'info');
+                updateStatus('Attempting to connect to channel...', 'warning');
+                
+            } catch (error) {
+                log(`❌ Failed to subscribe to channel: ${error.message}`, 'error');
+                updateStatus('Channel subscription failed', 'error');
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Auto-run basic tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Page loaded, running basic tests...');
+            
+            // Wait a moment for ActionCable to load from CDN
+            setTimeout(function() {
+                testActionCableLoad();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

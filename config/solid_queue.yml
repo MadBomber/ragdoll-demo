@@ -1,0 +1,25 @@
+default: &default
+  dispatchers:
+    - polling_interval: 5
+      batch_size: 500
+  workers:
+    - queues: [default]
+      threads: 3
+      polling_interval: 5
+      
+development:
+  <<: *default
+
+test:
+  <<: *default
+  workers:
+    - queues: [default]
+      threads: 1
+      polling_interval: 5
+
+production:
+  <<: *default
+  workers:
+    - queues: [default]
+      threads: 5
+      polling_interval: 3
