@@ -33,6 +33,15 @@ port ENV.fetch("PORT", 3000)
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
 
+# Increase timeout for large file uploads (10 minutes)
+worker_timeout 600
+
+# Increase client timeout for large uploads
+on_worker_boot do |index|
+  # Set longer timeout for file upload operations
+  ENV['RACK_TIMEOUT_SERVICE_TIMEOUT'] = '600'
+end
+
 # Run the Solid Queue supervisor inside of Puma for single-server deployments
 plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]
 
