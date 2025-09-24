@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12] - 2025-09-23
+
+### Added
+- Support for unified text-based RAG architecture with cross-modal search
+- Enhanced file type support including images (JPG, PNG, GIF) and audio (MP3, WAV, M4A)
+- Text conversion configuration for images and audio processing
+- Updated demo application landing page for unified architecture messaging
+
+### Changed
+- **BREAKING**: Migrated from multi-modal to unified text-based RAG system
+- Updated ragdoll configuration to use single embedding model (text-embedding-3-large)
+- Enhanced content processing to convert all media types to searchable text
+- Updated UI messaging to reflect unified architecture benefits
+- Updated dependencies to ragdoll v0.1.12 and ragdoll-rails v0.1.12
+
+### Migration Notes
+- All uploaded media (images, audio, documents) now converted to text for unified search
+- Cross-modal search enabled (find images by descriptions, audio by transcripts)
+- Single embedding model replaces previous type-specific models
+- Enhanced search capabilities across all media types
+
 ## [0.1.11] - 2025-08-17
 
 ### Added

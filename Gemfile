@@ -3,8 +3,8 @@ source "https://rubygems.org"
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.0.2"
 
-gem "ragdoll", path: "../ragdoll"
-gem "ragdoll-rails", path: "../ragdoll-rails"
+gem "ragdoll", path: "../core"
+gem "ragdoll-rails", path: "../rails"
 
 # Temporary workaround - ragdoll needs debug_me at runtime
 gem "debug_me"
@@ -35,6 +35,9 @@ gem "redis"
 gem 'mission_control-jobs'
 
 gem "bootsnap", require: false
+
+# Lumberjack for advanced logging
+gem "lumberjack"
 
 gem "kamal", require: false
 

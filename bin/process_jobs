@@ -1,0 +1,80 @@
+#!/usr/bin/env ruby
+
+# Manual job processor for SolidQueue
+# Use this when SolidQueue workers crash due to Ruby/pg gem compatibility issues
+
+require_relative '../config/environment'
+
+puts "🔧 Manual SolidQueue Job Processor"
+puts "   Designed to handle Ruby 3.4.6 + pg gem + ARM64 compatibility issues"
+puts ""
+
+# Check job counts
+total_jobs = SolidQueue::Job.count
+ready_jobs = SolidQueue::Job.where("scheduled_at IS NULL OR scheduled_at <= ?", Time.current).count
+
+puts "📊 Job Status:"
+puts "   Total jobs: #{total_jobs}"
+puts "   Ready to process: #{ready_jobs}"
+puts ""
+
+if ready_jobs == 0
+  puts "✅ No jobs to process!"
+  exit 0
+end
+
+# Process jobs manually using async adapter
+processed = 0
+failed = 0
+
+puts "🚀 Processing jobs manually (using async adapter)..."
+
+SolidQueue::Job.where("scheduled_at IS NULL OR scheduled_at <= ?", Time.current).find_each do |job|
+  begin
+    # Get the job class and deserialize the ActiveJob data from arguments
+    job_class = job.class_name.constantize
+    activejob_data = job.arguments
+    job_arguments = activejob_data["arguments"] || []
+
+    # Create the job instance
+    job_instance = job_class.new
+    job_instance.job_id = job.active_job_id
+    job_instance.queue_name = job.queue_name
+    job_instance.priority = job.priority
+    job_instance.arguments = job_arguments
+
+    puts "   Processing: #{job.class_name} [#{job.active_job_id[0..8]}...] (#{job_arguments.size} args)"
+
+    # Execute the job with the correct arguments
+    job_instance.perform(*job_arguments)
+
+    # Mark as finished
+    job.destroy
+
+    processed += 1
+    puts "   ✅ Completed: #{job.class_name}"
+
+  rescue => e
+    puts "   ❌ Failed: #{job.class_name} [#{job.active_job_id[0..8]}...] - Error: #{e.message}"
+    puts "     Arguments were: #{job_arguments.inspect}" if defined?(job_arguments)
+
+    # Mark job as failed (don't destroy, let it be retried later)
+    failed += 1
+  end
+
+  # Small delay to prevent overwhelming the system
+  sleep 0.1
+end
+
+puts ""
+puts "📈 Processing Complete:"
+puts "   ✅ Processed: #{processed} jobs"
+puts "   ❌ Failed: #{failed} jobs"
+puts "   📊 Remaining: #{SolidQueue::Job.count} jobs"
+puts ""
+
+if failed > 0
+  puts "⚠️  Some jobs failed. They remain in the queue for retry."
+else
+  puts "🎉 All available jobs processed successfully!"
+end
