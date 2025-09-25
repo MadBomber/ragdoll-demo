@@ -58,7 +58,7 @@ Ragdoll.configure do |config|
   # Text Conversion Settings (for unified architecture)
   config.text_conversion = {
     image_detail_level: :comprehensive,  # :minimal, :standard, :comprehensive, :analytical
-    audio_transcription_provider: :openai,  # :openai, :azure, :google, :whisper_local
+    audio_transcription_provider: :ollama,  # :openai, :azure, :google, :whisper_local, :ollama
     enable_fallback_descriptions: true
   }
 
