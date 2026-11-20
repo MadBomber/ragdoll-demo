@@ -16,40 +16,40 @@ Ragdoll.configure do |config|
   # Add your API keys and configuration here
   config.llm_config = {
     openai: {
-      api_key: ENV['OPENAI_API_KEY']
+      api_key: ENV["OPENAI_API_KEY"]
       # organization: ENV['OPENAI_ORGANIZATION'],  # optional
       # project: ENV['OPENAI_PROJECT']              # optional
     },
     anthropic: {
-      api_key: ENV['ANTHROPIC_API_KEY']
+      api_key: ENV["ANTHROPIC_API_KEY"]
     },
     google: {
-      api_key: ENV['GOOGLE_API_KEY'],
-      project_id: ENV['GOOGLE_PROJECT_ID']
+      api_key: ENV["GOOGLE_API_KEY"],
+      project_id: ENV["GOOGLE_PROJECT_ID"]
     },
     azure: {
-      api_key: ENV['AZURE_API_KEY'],
-      endpoint: ENV['AZURE_ENDPOINT'],
-      api_version: ENV['AZURE_API_VERSION']
+      api_key: ENV["AZURE_API_KEY"],
+      endpoint: ENV["AZURE_ENDPOINT"],
+      api_version: ENV["AZURE_API_VERSION"]
     },
     ollama: {
-      endpoint: ENV['OLLAMA_ENDPOINT'] || 'http://localhost:11434'
+      endpoint: ENV["OLLAMA_ENDPOINT"] || "http://localhost:11434"
     },
     huggingface: {
-      api_key: ENV['HUGGINGFACE_API_KEY']
+      api_key: ENV["HUGGINGFACE_API_KEY"]
     }
   }
 
   # Unified Embedding Model Configuration
   # Single model for all content types (converted to text)
   # Examples: 'text-embedding-3-small', 'text-embedding-3-large', 'text-embedding-ada-002'
-  config.embedding_model = 'embeddinggemma'
+  config.embedding_model = "embeddinggemma"
 
   # Enable unified text-based architecture
   config.use_unified_content = true
 
   # Default model for chat/completion
-  config.default_model = 'gpt-oss'
+  config.default_model = "gpt-oss"
 
   # Text Processing Configuration
   config.chunk_size = 1000
@@ -81,12 +81,12 @@ Ragdoll.configure do |config|
   # Database Configuration - use Rails database connection
   db_config = Rails.configuration.database_configuration[Rails.env]
   config.database = {
-    adapter: db_config['adapter'],
-    database: db_config['database'],
-    username: db_config['username'],
-    password: db_config['password'],
-    host: db_config['host'] || 'localhost',
-    port: db_config['port'] || 5432,
+    adapter: db_config["adapter"],
+    database: db_config["database"],
+    username: db_config["username"],
+    password: db_config["password"],
+    host: db_config["host"] || "localhost",
+    port: db_config["port"] || 5432,
     auto_migrate: false  # Rails handles migrations
   }
 

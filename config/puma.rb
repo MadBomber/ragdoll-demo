@@ -39,7 +39,7 @@ worker_timeout 600
 # Increase client timeout for large uploads
 on_worker_boot do |index|
   # Set longer timeout for file upload operations
-  ENV['RACK_TIMEOUT_SERVICE_TIMEOUT'] = '600'
+  ENV["RACK_TIMEOUT_SERVICE_TIMEOUT"] = "600"
 end
 
 # Run the Solid Queue supervisor inside of Puma for single-server deployments

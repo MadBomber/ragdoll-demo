@@ -92,7 +92,7 @@ bundle exec rails db:setup
 
 ## Requirements
 
-- Ruby 3.4.4+
+- Ruby 4.0+
 - Rails 8.0.2+
 - PostgreSQL with pgvector extension
 - Redis (for ActionCable and real-time features)

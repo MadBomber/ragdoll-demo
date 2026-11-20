@@ -4,13 +4,13 @@
 class ManualDispatcher
   def self.dispatch_ready_jobs(limit = 10)
     dispatched = 0
-    
+
     # Find jobs ready for dispatch (excluding DispatcherJob to avoid recursion)
     ready_jobs = SolidQueue::Job
-      .where('scheduled_at <= ?', Time.current)
-      .where.not(class_name: 'DispatcherJob')
+      .where("scheduled_at <= ?", Time.current)
+      .where.not(class_name: "DispatcherJob")
       .limit(limit)
-      
+
     ready_jobs.each do |job|
       begin
         # Check if ready execution already exists for this job
@@ -27,15 +27,15 @@ class ManualDispatcher
         puts "❌ Failed to dispatch job #{job.id}: #{e.message}"
       end
     end
-    
+
     puts "📦 Dispatched #{dispatched} jobs"
     dispatched
   end
-  
+
   def self.run_continuous_dispatch(interval = 5)
     puts "🔄 Starting continuous manual dispatcher (interval: #{interval}s)"
     puts "Press Ctrl+C to stop"
-    
+
     loop do
       dispatch_ready_jobs
       sleep interval

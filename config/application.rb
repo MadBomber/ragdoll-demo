@@ -31,17 +31,17 @@ module Dummy
 
     # Configure lumberjack logger at application level to prevent development.log creation
     if Rails.env.development? || Rails.env.test?
-      require 'lumberjack'
-      log_file = Rails.root.join('log', 'lumberjack.log')
+      require "lumberjack"
+      log_file = Rails.root.join("log", "lumberjack.log")
 
       # Create unified lumberjack logger
       unified_logger = Lumberjack::Logger.new(
         log_file,
         level: :debug,
-        datetime_format: '%Y-%m-%d %H:%M:%S.%3N',
+        datetime_format: "%Y-%m-%d %H:%M:%S.%3N",
         max_size: 50.megabytes,
         keep_files: 5,
-        progname: 'App',
+        progname: "App",
         tags: {
           pid: Process.pid,
           host: Socket.gethostname

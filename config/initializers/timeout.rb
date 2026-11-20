@@ -6,7 +6,7 @@ Rails.application.configure do
   if Rails.env.development?
     config.middleware.delete Rack::Timeout::Middleware if defined?(Rack::Timeout::Middleware)
   end
-  
+
   # Set longer timeout for production if Rack::Timeout is used
   if defined?(Rack::Timeout)
     Rack::Timeout.service_timeout = 600  # 10 minutes
