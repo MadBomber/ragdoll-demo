@@ -13,6 +13,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # The Gemfile references ragdoll and ragdoll-rails by sibling path
+      - name: Check out ragdoll gems referenced by path
+        run: |
+          git clone --depth 1 --branch v0.1.12 https://github.com/MadBomber/ragdoll.git ../core
+          git clone --depth 1 --branch v0.1.12 https://github.com/MadBomber/ragdoll-rails.git ../rails
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -29,6 +35,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # The Gemfile references ragdoll and ragdoll-rails by sibling path
+      - name: Check out ragdoll gems referenced by path
+        run: |
+          git clone --depth 1 --branch v0.1.12 https://github.com/MadBomber/ragdoll.git ../core
+          git clone --depth 1 --branch v0.1.12 https://github.com/MadBomber/ragdoll-rails.git ../rails
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -43,6 +55,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # The Gemfile references ragdoll and ragdoll-rails by sibling path
+      - name: Check out ragdoll gems referenced by path
+        run: |
+          git clone --depth 1 --branch v0.1.12 https://github.com/MadBomber/ragdoll.git ../core
+          git clone --depth 1 --branch v0.1.12 https://github.com/MadBomber/ragdoll-rails.git ../rails
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
