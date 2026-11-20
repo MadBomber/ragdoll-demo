@@ -19,6 +19,10 @@ jobs:
           git clone --depth 1 --branch v0.1.12 https://github.com/MadBomber/ragdoll.git ../core
           git clone --depth 1 --branch v0.1.12 https://github.com/MadBomber/ragdoll-rails.git ../rails
 
+      # rmagick (a ragdoll dependency) compiles against ImageMagick
+      - name: Install ImageMagick headers
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libmagickwand-dev
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -41,6 +45,10 @@ jobs:
           git clone --depth 1 --branch v0.1.12 https://github.com/MadBomber/ragdoll.git ../core
           git clone --depth 1 --branch v0.1.12 https://github.com/MadBomber/ragdoll-rails.git ../rails
 
+      # rmagick (a ragdoll dependency) compiles against ImageMagick
+      - name: Install ImageMagick headers
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libmagickwand-dev
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -61,6 +69,10 @@ jobs:
         run: |
           git clone --depth 1 --branch v0.1.12 https://github.com/MadBomber/ragdoll.git ../core
           git clone --depth 1 --branch v0.1.12 https://github.com/MadBomber/ragdoll-rails.git ../rails
+
+      # rmagick (a ragdoll dependency) compiles against ImageMagick
+      - name: Install ImageMagick headers
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libmagickwand-dev
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
