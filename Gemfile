@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.0.2"
+gem "rails", "~> 8.1.0"
 
 gem "ragdoll", path: "../core"
 gem "ragdoll-rails", path: "../rails"
@@ -17,7 +17,9 @@ gem "turbo-rails"
 gem "stimulus-rails"
 gem "jbuilder"
 
-gem "view_component"
+# ragdoll-rails 0.1.12 sets config.view_component.preview_paths in development,
+# which view_component >= 4.21 rejects with UnknownConfigOptionError.
+gem "view_component", "< 4.21"
 gem "view_component-contrib"
 
 
