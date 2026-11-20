@@ -22,7 +22,7 @@
 # end
 
 Rails.application.config.after_initialize do
-  unless defined?(Rails::Console) || Rails.env.test? || $PROGRAM_NAME.include?('rake')
+  unless defined?(Rails::Console) || Rails.env.test? || $PROGRAM_NAME.include?("rake")
     Rails.logger.info "🔄 Using async job adapter - worker monitoring disabled"
   end
 end

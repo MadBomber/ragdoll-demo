@@ -5,11 +5,11 @@
 begin
   # Get current soft and hard limits
   soft_limit, hard_limit = Process.getrlimit(:NOFILE)
-  
+
   # Set soft limit to hard limit (or a reasonable maximum)
   # This allows the process to open more files simultaneously
-  new_limit = [hard_limit, 10240].min  # Don't exceed 10k file descriptors
-  
+  new_limit = [ hard_limit, 10240 ].min  # Don't exceed 10k file descriptors
+
   if soft_limit < new_limit
     Process.setrlimit(:NOFILE, new_limit, hard_limit)
     Rails.logger.info "File descriptor limit increased from #{soft_limit} to #{new_limit}"

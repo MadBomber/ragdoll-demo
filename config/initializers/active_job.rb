@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 # Configure ActiveJob with a custom concurrent adapter
-require 'active_job'
-require 'concurrent'
+require "active_job"
+require "concurrent"
 
 # Custom queue adapter that maintains a persistent thread pool
 class ConcurrentAdapter
@@ -30,7 +30,7 @@ class ConcurrentAdapter
 
   def executor
     @executor ||= begin
-      base_threads = ENV.fetch('JOB_CONCURRENT', 5).to_i
+      base_threads = ENV.fetch("JOB_CONCURRENT", 5).to_i
       # Account for additional background jobs that each file upload triggers:
       # ProcessFileJob + GenerateEmbeddingsJob + GenerateSummaryJob + ExtractKeywordsJob
       # So each file needs 4 threads. Multiply by 1.5x for safety margin.
@@ -39,7 +39,7 @@ class ConcurrentAdapter
       Rails.logger.info "🧵 ConcurrentAdapter: Setting up thread pool with #{max_threads} threads (base: #{base_threads})"
 
       Concurrent::ThreadPoolExecutor.new(
-        min_threads: [max_threads / 4, 2].max, # Keep some threads always available
+        min_threads: [ max_threads / 4, 2 ].max, # Keep some threads always available
         max_threads: max_threads,
         max_queue: 1000,
         fallback_policy: :caller_runs,

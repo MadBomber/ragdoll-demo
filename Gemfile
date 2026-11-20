@@ -32,7 +32,7 @@ gem "solid_cable"
 # Redis for ActionCable adapter
 gem "redis"
 
-gem 'mission_control-jobs'
+gem "mission_control-jobs"
 
 gem "bootsnap", require: false
 
@@ -46,7 +46,7 @@ gem "thruster", require: false
 
 
 group :development, :test do
-  gem 'claude-on-rails'
+  gem "claude-on-rails"
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
 
   gem "brakeman", require: false
