@@ -1,6 +1,6 @@
 # Ragdoll Demo
 
-A demonstration Rails application showcasing the Ragdoll document processing and search engine.
+A demonstration Rails application showcasing the Ragdoll unified text-based RAG engine with cross-modal search capabilities.
 
 ## Quick Start
 
@@ -92,7 +92,7 @@ bundle exec rails db:setup
 
 ## Requirements
 
-- Ruby 3.4.4+
+- Ruby 4.0+
 - Rails 8.0.2+
 - PostgreSQL with pgvector extension
 - Redis (for ActionCable and real-time features)
@@ -134,7 +134,8 @@ redis-cli ping
 - **Frontend**: Rails views with ViewComponent, Turbo, Stimulus
 - **Background Jobs**: SolidQueue with PostgreSQL adapter
 - **Database**: PostgreSQL with vector extensions (pgvector)
-- **Search**: Elasticsearch/OpenSearch integration via Ragdoll engine
+- **Search**: Unified text-based RAG with single embedding model for all media types
+- **Content Processing**: Images → descriptions, Audio → transcripts, Documents → text extraction
 - **Process Management**: Foreman for development, systemd/Docker for production
 
 ## Development
@@ -143,7 +144,9 @@ The application uses:
 - **ViewComponent** for reusable UI components
 - **Hotwire (Turbo + Stimulus)** for interactive features
 - **SolidQueue** for reliable background job processing
-- **Ragdoll Engine** for document processing and vector search
+- **Ragdoll Engine** for unified text-based RAG with cross-modal search
+- **Single Embedding Model** (text-embedding-3-large) for all media types
+- **Automatic Text Conversion** for images, audio, and documents
 
 ## Just (Task Runner) Integration
 

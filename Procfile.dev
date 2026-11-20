@@ -1,2 +1,2 @@
 web: bundle exec rails server -p 3000
-worker: RUBY_YJIT_ENABLE=0 ./bin/jobs start
+# worker: MALLOC_ARENA_MAX=2 RUBY_YJIT_ENABLE=false ./bin/jobs start  # DISABLED: Segfaults with Ruby 3.4.6 + pg gem on ARM64

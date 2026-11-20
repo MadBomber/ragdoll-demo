@@ -1,54 +1,66 @@
 # frozen_string_literal: true
 
-# Ragdoll RAG (Retrieval-Augmented Generation) Configuration
+# Ragdoll Unified Text-Based RAG Configuration
 # This initializer configures the Ragdoll Rails engine for your application.
+# All media types (images, audio, documents) are converted to searchable text.
 
 Ragdoll.configure do |config|
   # LLM Provider Configuration
   # Supported providers: :openai, :anthropic, :google, :azure, :ollama, :huggingface
-  config.llm_provider = :openai
-  
+  config.llm_provider = :ollama
+
   # Optional: Use a different provider for embeddings (defaults to llm_provider)
-  # config.embedding_provider = :openai
+  config.embedding_provider = :ollama
 
   # Provider-specific API configurations
   # Add your API keys and configuration here
   config.llm_config = {
-    openai: { 
-      api_key: ENV['OPENAI_API_KEY']
+    openai: {
+      api_key: ENV["OPENAI_API_KEY"]
       # organization: ENV['OPENAI_ORGANIZATION'],  # optional
       # project: ENV['OPENAI_PROJECT']              # optional
     },
-    anthropic: { 
-      api_key: ENV['ANTHROPIC_API_KEY'] 
+    anthropic: {
+      api_key: ENV["ANTHROPIC_API_KEY"]
     },
-    google: { 
-      api_key: ENV['GOOGLE_API_KEY'],
-      project_id: ENV['GOOGLE_PROJECT_ID']
+    google: {
+      api_key: ENV["GOOGLE_API_KEY"],
+      project_id: ENV["GOOGLE_PROJECT_ID"]
     },
     azure: {
-      api_key: ENV['AZURE_API_KEY'],
-      endpoint: ENV['AZURE_ENDPOINT'],
-      api_version: ENV['AZURE_API_VERSION']
+      api_key: ENV["AZURE_API_KEY"],
+      endpoint: ENV["AZURE_ENDPOINT"],
+      api_version: ENV["AZURE_API_VERSION"]
     },
     ollama: {
-      endpoint: ENV['OLLAMA_ENDPOINT'] || 'http://localhost:11434'
+      endpoint: ENV["OLLAMA_ENDPOINT"] || "http://localhost:11434"
     },
     huggingface: {
-      api_key: ENV['HUGGINGFACE_API_KEY']
+      api_key: ENV["HUGGINGFACE_API_KEY"]
     }
   }
 
-  # Embedding Model Configuration
+  # Unified Embedding Model Configuration
+  # Single model for all content types (converted to text)
   # Examples: 'text-embedding-3-small', 'text-embedding-3-large', 'text-embedding-ada-002'
-  config.embedding_model = 'text-embedding-3-small'
-  
+  config.embedding_model = "embeddinggemma"
+
+  # Enable unified text-based architecture
+  config.use_unified_content = true
+
   # Default model for chat/completion
-  config.default_model = 'gpt-4o-mini'
+  config.default_model = "gpt-oss"
 
   # Text Processing Configuration
   config.chunk_size = 1000
   config.chunk_overlap = 200
+
+  # Text Conversion Settings (for unified architecture)
+  config.text_conversion = {
+    image_detail_level: :comprehensive,  # :minimal, :standard, :comprehensive, :analytical
+    audio_transcription_provider: :ollama,  # :openai, :azure, :google, :whisper_local, :ollama
+    enable_fallback_descriptions: true
+  }
 
   # Search Configuration
   config.search_similarity_threshold = 0.7
@@ -69,12 +81,12 @@ Ragdoll.configure do |config|
   # Database Configuration - use Rails database connection
   db_config = Rails.configuration.database_configuration[Rails.env]
   config.database = {
-    adapter: db_config['adapter'],
-    database: db_config['database'], 
-    username: db_config['username'],
-    password: db_config['password'],
-    host: db_config['host'] || 'localhost',
-    port: db_config['port'] || 5432,
+    adapter: db_config["adapter"],
+    database: db_config["database"],
+    username: db_config["username"],
+    password: db_config["password"],
+    host: db_config["host"] || "localhost",
+    port: db_config["port"] || 5432,
     auto_migrate: false  # Rails handles migrations
   }
 
@@ -82,12 +94,12 @@ Ragdoll.configure do |config|
   # Use {{context}} and {{prompt}} placeholders
   # config.prompt_template = <<~TEMPLATE
   #   Based on the following context, please answer the question.
-  #   
+  #
   #   Context:
   #   {{context}}
-  #   
+  #
   #   Question: {{prompt}}
-  #   
+  #
   #   Answer:
   # TEMPLATE
 end
@@ -96,13 +108,14 @@ end
 Ragdoll::Rails.configure do |config|
   # Enable/disable background job processing
   config.use_background_jobs = true
-  
+
   # Background job queue name
   config.queue_name = :ragdoll
-  
+
   # Maximum file size for uploads (in bytes)
   config.max_file_size = 10.megabytes
-  
+
   # Allowed file types for document upload
-  config.allowed_file_types = %w[pdf docx txt md html htm json xml csv]
+  # All types are converted to text: images -> descriptions, audio -> transcripts
+  config.allowed_file_types = %w[pdf docx txt md html htm json xml csv jpg jpeg png gif mp3 wav m4a]
 end

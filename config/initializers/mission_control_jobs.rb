@@ -18,28 +18,28 @@ if Rails.env.development?
         MissionControl::Jobs::ApplicationController.class_eval do
           # Remove all before_actions by clearing the callback chain
           reset_callbacks :process_action
-          
+
           # Override authenticate method to always return true
           define_method :authenticate do
             true
           end
-          
+
           # Provide a fake current_user
           define_method :current_user do
             OpenStruct.new(
-              id: 1, 
-              name: "Development User", 
+              id: 1,
+              name: "Development User",
               email: "dev@example.com"
             )
           end
-          
+
           # Override any authorization checks
           define_method :authorized? do
             true
           end
-          
+
           private
-          
+
           # Ensure no authentication is required
           def require_authentication
             # Do nothing

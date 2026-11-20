@@ -1,10 +1,10 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.0.2"
+gem "rails", "~> 8.1.0"
 
-gem "ragdoll", path: "../ragdoll"
-gem "ragdoll-rails", path: "../ragdoll-rails"
+gem "ragdoll", path: "../core"
+gem "ragdoll-rails", path: "../rails"
 
 # Temporary workaround - ragdoll needs debug_me at runtime
 gem "debug_me"
@@ -17,7 +17,9 @@ gem "turbo-rails"
 gem "stimulus-rails"
 gem "jbuilder"
 
-gem "view_component"
+# ragdoll-rails 0.1.12 sets config.view_component.preview_paths in development,
+# which view_component >= 4.21 rejects with UnknownConfigOptionError.
+gem "view_component", "< 4.21"
 gem "view_component-contrib"
 
 
@@ -32,9 +34,12 @@ gem "solid_cable"
 # Redis for ActionCable adapter
 gem "redis"
 
-gem 'mission_control-jobs'
+gem "mission_control-jobs"
 
 gem "bootsnap", require: false
+
+# Lumberjack for advanced logging
+gem "lumberjack"
 
 gem "kamal", require: false
 
@@ -43,7 +48,7 @@ gem "thruster", require: false
 
 
 group :development, :test do
-  gem 'claude-on-rails'
+  gem "claude-on-rails"
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
 
   gem "brakeman", require: false
